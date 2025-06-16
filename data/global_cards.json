@@ -1,0 +1,32 @@
+[
+    {
+        "materia": "Direito Constitucional",
+        "assunto": "Princípios Fundamentais",
+        "pergunta": "Quais os objetivos da República Federativa do Brasil?",
+        "resposta_esperada": "Os objetivos da República Federativa do Brasil são construir uma sociedade livre, justa e solidária, garantir o desenvolvimento nacional, erradicar a pobreza e a marginalização e reduzir as desigualdades sociais e regionais; promover o bem de todos, sem preconceitos de origem, raça, sexo, cor, idade e quaisquer outras formas de discriminação."
+    },
+    {
+        "materia": "Direito Constitucional",
+        "assunto": "Princípios Fundamentais",
+        "pergunta": "Quais os fundamentos da República Federativa do Brasil?",
+        "resposta_esperada": "A soberania, a cidadania, a dignidade da pessoa humana, os valores sociais do trabalho e da livre iniciativa, o pluralismo político."
+    },
+    {
+        "materia": "Direito Administrativo",
+        "assunto": "Lei nº 14.133/2021",
+        "pergunta": "Quais os objetivos do processo licitatório expressos na Lei 14.133/2021?",
+        "resposta_esperada": "O processo licitatório tem por objetivos assegurar a seleção da proposta apta a gerar o resultado de contratação mais vantajoso para a Administração Pública, inclusive no que se refere ao ciclo de vida do objeto; assegurar tratamento isonômico entre os licitantes, bem como a justa competição; evitar contratações com sobrepreço ou com preços manifestamente inexequíveis e superfaturamento na execução dos contratos; incentivar a inovação e o desenvolvimento nacional sustentável."
+    },
+    {
+        "materia": "Direito Administrativo",
+        "assunto": "Lei nº 14.133/2021",
+        "pergunta": "No processo de licitação, para que bens poderá ser estabelecida margem de preferência?",
+        "resposta_esperada": "Poderá ser estabelecida margem de preferência para bens manufaturados e serviços nacionais que atendam a normas técnicas brasileiras e para bens reciclados, recicláveis ou biodegradáveis, conforme regulamento."
+    },
+    {
+        "materia": "Direito Constitucional",
+        "assunto": "Princípios Fundamentais",
+        "pergunta": "Segundo a Constituição Federal de 1988, a República Federativa do Brasil rege-se nas suas relações internacionais por dez princípios. Infome ao menos seis desses princípios.",
+        "resposta_esperada": "O usuário deve informar ao menos seis dos seguintes princípios: I - independência nacional; II - prevalência dos direitos humanos; III - autodeterminação dos povos; IV - não-intervenção; V - igualdade entre os Estados; VI - defesa da paz; VII - solução pacífica dos conflitos; VIII - repúdio ao terrorismo e ao racismo; IX - cooperação entre os povos para o progresso da humanidade; X - concessão de asilo político."
+    }
+]
