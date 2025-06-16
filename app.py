@@ -462,7 +462,7 @@ if st.session_state.logged_in_user is None:
 
 else:
     # --- INTERFACE PRINCIPAL DO APLICATIVO ---
-    st.title(f"Sistema de Treino para Provas Discursivas de {st.session_state.logged_in_user}")
+    st.title(f"Sistema de Discursivas — {st.session_state.logged_in_user}")
     st.write("Bem-vindo! Este é o seu sistema de flashcards inteligente com feedback do Gemini!")
 
     # Botão de Logout
