@@ -377,7 +377,7 @@ if st.session_state.logged_in_user is None:
     if not inicializar_admin(): # Se inicializar_admin retornar False, significa que está criando o admin, então não prossegue para o login.
         st.stop() # Pára a execução temporariamente para a tela de criação do admin.
 
-    st.title("Bem-vindo ao Sistema de Treino!")
+    st.title("Bem-vindo ao Sistema de Discursivas!")
     st.subheader("Por favor, faça login para continuar:")
 
     users_data = carregar_usuarios() # Carrega usuários para verificar
