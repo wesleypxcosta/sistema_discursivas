@@ -18,7 +18,7 @@ st.markdown(
 
     /* Ajusta o tamanho da fonte para todos os textos principais */
     p, div, span, label, h1, h2, h3, h4, h5, h6 {
-        font-size: 1em; /* 1 vezes o tamanho padrão */
+        font-size: 1em; /* 1.1 vezes o tamanho padrão */
         line-height: 1.6; /* Espaçamento entre linhas */
     }
 
@@ -108,22 +108,23 @@ model = genai.GenerativeModel('models/gemini-2.5-flash-preview-05-20')
 BASE_DATA_DIR = "data"
 GLOBAL_CARDS_FILE = os.path.join(BASE_DATA_DIR, "global_cards.json")
 FEEDBACK_HISTORY_FILENAME = "feedback_history.json"
-USERS_FILE = os.path.join(BASE_DATA_DIR, "users.json") # <-- NOVO: Arquivo de usuários
+USERS_FILE = os.path.join(BASE_DATA_DIR, "users.json")
 
 # --- DEFINIÇÃO DO ADMINISTRADOR ---
-ADMIN_USERNAME = "admin" # Admin continua sendo um nome especial
+ADMIN_USERNAME = "admin"
 
 # --- Funções Auxiliares para Caminhos de Arquivo por Usuário (e Global) ---
 def get_user_data_path(username):
+    """Retorna o caminho do diretório de dados para um usuário específico."""
     user_dir = os.path.join(BASE_DATA_DIR, username)
-    os.makedirs(user_dir, exist_ok=True)
+    os.makedirs(user_dir, exist_ok=True) # Cria o diretório se não existir
     return user_dir
 
 def get_feedback_history_file_path(username):
+    """Retorna o caminho completo do arquivo de histórico para um usuário."""
     return os.path.join(get_user_data_path(username), FEEDBACK_HISTORY_FILENAME)
 
 # --- Funções de Manipulação de Cartões (Global) ---
-# ... (carregar_cartoes_globais, salvar_cartoes_globais - permanecem inalteradas) ...
 def carregar_cartoes_globais():
     """
     Carrega as perguntas e respostas esperadas do arquivo global de cartões.
@@ -152,7 +153,6 @@ def salvar_cartoes_globais(cartoes_data):
         st.error(f"Erro ao salvar cartões globais: {e}")
 
 # Funções de histórico de feedback (com username)
-# ... (carregar_historico_feedback, salvar_historico_feedback - permanecem inalteradas) ...
 def carregar_historico_feedback(username):
     """
     Carrega o histórico de feedback de um arquivo JSON para um usuário específico.
@@ -179,8 +179,7 @@ def salvar_historico_feedback(historico_data, username):
     except Exception as e:
         st.error(f"Erro ao salvar histórico de feedback de '{username}': {e}")
 
-
-# --- NOVAS FUNÇÕES PARA GERENCIAMENTO DE USUÁRIOS E SENHAS ---
+# --- Funções para Gerenciamento de Usuários e Senhas ---
 def hash_password(password):
     """Gera o hash SHA256 de uma senha."""
     return hashlib.sha256(password.encode()).hexdigest()
@@ -223,8 +222,9 @@ def inicializar_admin():
                     st.rerun()
                 else:
                     st.error("As senhas não coincidem ou estão vazias. Tente novamente.")
-        return False # Indica que a criação está em andamento, não prossegue para o login
+        return False # Indica que a criação está emS andamento, não prossegue para o login
     return True # Indica que o admin existe e pode prosseguir para o login
+
 
 # --- Função de Interação com o Gemini ---
 def comparar_respostas_com_gemini(resposta_usuario, resposta_esperada):
@@ -238,10 +238,10 @@ def comparar_respostas_com_gemini(resposta_usuario, resposta_esperada):
         return "Por favor, forneça ambas as respostas para comparação."
 
     prompt = f"""
-    Sua tarefa é fornecer um feedback **sucinto e objetivo** para a 'Resposta do Usuário' em comparação com a 'Resposta Esperada'.
-    A ideia é que o usuário ganhe agilidade no aprendizado, focando nos pontos essenciais.
+    Sua tarefa é fornecer um feedback **sucinto e objetivo** para a 'Resposta do Usuário' em comparação com la 'Resposta Esperada'.
+    A ideia é que o usuário ganhe agilidade no aprendizado, focando nos puntos esenciales.
 
-    O feedback deve ser dividido em seções claras, sem rodeios.
+    O feedback deve ser dividido en seções claras, sem rodeios.
 
     **Estrutura de Feedback Requerida:**
 
@@ -326,7 +326,7 @@ def parse_feedback_sections(full_feedback_text):
 
 
 # --- INICIALIZAÇÃO DOS ESTADOS DO STREAMLIT ---
-# IMPORTANTE: Garante que as variáveis de sessão são inicializadas antes de serem usadas
+# IMPORTANTES: Garante que as variáveis de sessão são inicializadas antes de serem usadas
 if 'logged_in_user' not in st.session_state:
     st.session_state.logged_in_user = None
 
@@ -344,7 +344,7 @@ if 'show_expected_answer' not in st.session_state:
     st.session_state.show_expected_answer = False
 
 # Estado para armazenar o feedback completo do Gemini para exibição persistente
-if 'last_gemini_feedback_display_parsed' not in st.session_state:
+if 'last_gemini_feedback_display_parsed' not in st.session_state: # AGORA ARMAZENA O DICIONÁRIO PARSEADO
     st.session_state.last_gemini_feedback_display_parsed = None
 
 # Estado para armazenar a pergunta do último feedback (para exibir junto ao feedback persistente)
@@ -359,7 +359,7 @@ if 'last_gemini_expected_answer' not in st.session_state:
 if 'add_card_form_key_suffix' not in st.session_state:
     st.session_state.add_card_form_key_suffix = 0
 
-# Estados para persistir valores de Matéria e Assunto no formulário de adição
+# NOVO: Estados para persistir valores de Matéria e Assunto no formulário de adição
 if 'last_materia_input' not in st.session_state:
     st.session_state.last_materia_input = ""
 if 'last_assunto_input' not in st.session_state:
@@ -369,19 +369,39 @@ if 'last_assunto_input' not in st.session_state:
 if 'ordered_cards_for_session' not in st.session_state:
     st.session_state.ordered_cards_for_session = [] # Será preenchido no login
 
+# Estado para armazenar a lista de cartões "difíceis" para a sessão atual do usuário
+if 'difficult_cards_for_session' not in st.session_state:
+    st.session_state.difficult_cards_for_session = []
+
+# Estado para controlar o índice do cartão na aba "Perguntas Mais Difíceis"
+if 'current_card_index_difficult' not in st.session_state:
+    st.session_state.current_card_index_difficult = 0
+
 
 # --- LÓGICA PRINCIPAL DO APP ---
 # Se o usuário não estiver logado, exibe a tela de login
 if st.session_state.logged_in_user is None:
-    # Garante que o admin exista antes de exibir a tela de login normal
-    if not inicializar_admin(): # Se inicializar_admin retornar False, significa que está criando o admin, então não prossegue para o login.
-        st.stop() # Pára a execução temporariamente para a tela de criação do admin.
+    # Garante que o admin exista na primeira execução
+    users = carregar_usuarios()
+    if ADMIN_USERNAME not in users:
+        st.sidebar.warning(f"O usuário administrador ('{ADMIN_USERNAME}') não existe. Por favor, crie-o agora.")
+        with st.form("admin_creation_form"):
+            admin_password = st.text_input(f"Defina a senha para '{ADMIN_USERNAME}':", type="password", key="admin_pass_init")
+            confirm_admin_password = st.text_input("Confirme a senha:", type="password", key="admin_pass_confirm_init")
+            if st.form_submit_button("Criar Usuário Administrador"):
+                if admin_password == confirm_admin_password and admin_password.strip():
+                    users[ADMIN_USERNAME] = hash_password(admin_password)
+                    salvar_usuarios(users)
+                    st.success(f"Usuário '{ADMIN_USERNAME}' criado com sucesso! Por favor, faça login.")
+                    st.rerun()
+                else:
+                    st.error("As senhas não coincidem ou estão vazias. Tente novamente.")
+        st.stop()
 
-    st.title("Bem-vindo ao Sistema de Discursivas!")
+
+    st.title("Bem-vindo ao Sistema de Treino!")
     st.subheader("Por favor, faça login para continuar:")
 
-    users_data = carregar_usuarios() # Carrega usuários para verificar
-    
     username_login = st.text_input("Nome de Usuário:", key="username_login_input_form")
     password_login = st.text_input("Senha:", type="password", key="password_login_input_form")
     
@@ -390,38 +410,46 @@ if st.session_state.logged_in_user is None:
     with col_login_btns_1:
         if st.button("Entrar", key="login_button"):
             if username_login.strip() and password_login.strip():
+                users_data = carregar_usuarios()
                 if username_login.strip() in users_data and users_data[username_login.strip()] == hash_password(password_login.strip()):
                     st.session_state.logged_in_user = username_login.strip()
-                    # Carrega APENAS os dados de histórico do usuário logado
                     st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user)
                     
-                    # --- NOVO: Lógica de Reordenação no Login ---
-                    card_performance = {}
-                    for entry in st.session_state.feedback_history:
+                    # --- Lógica de Reordenação da aba "Todas as Perguntas" (no Login) ---
+                    # Calcula a última nota para cada cartão global para ordenação
+                    card_latest_scores = {}
+                    for entry in reversed(st.session_state.feedback_history):
                         card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
-                        if card_id not in card_performance:
-                            card_performance[card_id] = []
-                        if entry.get("nota_sentido") is not None:
-                            card_performance[card_id].append(entry["nota_sentido"])
+                        if card_id not in card_latest_scores: # Pega apenas a primeira (última) ocorrência
+                            card_latest_scores[card_id] = entry.get("nota_sentido")
 
-                    cards_with_avg_score = []
+                    cards_for_ordering = []
                     for card in st.session_state.global_cartoes:
                         card_id = (card["pergunta"], card["materia"], card["assunto"])
-                        if card_id in card_performance and card_performance[card_id]:
-                            avg_score = sum(card_performance[card_id]) / len(card_performance[card_id])
-                            cards_with_avg_score.append((card, avg_score))
-                        else:
-                            cards_with_avg_score.append((card, -1)) # Cartões sem histórico no início
+                        # Se o cartão tem uma nota, usa a última; senão, usa -1 para priorizar
+                        score_to_order = card_latest_scores.get(card_id, -1) 
+                        cards_for_ordering.append((card, score_to_order))
 
-                    sorted_cards = sorted(cards_with_avg_score, key=lambda x: x[1])
-                    st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted_cards]
-                    # --- FIM DA REORDENAÇÃO NO LOGIN ---
+                    # Ordena: Menor nota primeiro (pior desempenho vem antes)
+                    st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted(cards_for_ordering, key=lambda x: x[1])]
+                    # --- FIM DA REORDENAÇÃO DA ABA "TODAS AS PERGUNTAS" NO LOGIN ---
+
+                    # --- Lógica para Identificar Perguntas Mais Difíceis (no Login) ---
+                    difficult_cards = []
+                    for card in st.session_state.global_cartoes:
+                        card_id = (card["pergunta"], card["materia"], card["assunto"])
+                        # Uma pergunta é difícil se foi respondida E a última nota foi < 80%
+                        if card_id in card_latest_scores and card_latest_scores[card_id] is not None and card_latest_scores[card_id] < 80:
+                            difficult_cards.append(card)
+                    st.session_state.difficult_cards_for_session = difficult_cards
+                    # --- FIM DA LÓGICA DE DIFÍCEIS NO LOGIN ---
 
                     # Resetar outros estados para o novo usuário
                     st.session_state.current_card_index = 0
+                    st.session_state.current_card_index_difficult = 0 # Reseta o índice da aba difícil
                     st.session_state.show_expected_answer = False
                     st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback anterior
-                    st.rerun() # Recarrega a página para entrar no aplicativo principal
+                    st.rerun()
                 else:
                     st.error("Nome de usuário ou senha incorretos.")
             else:
@@ -443,6 +471,7 @@ if st.session_state.logged_in_user is None:
             with col_create:
                 if st.form_submit_button("Registrar"):
                     if new_username.strip() and new_password.strip() and new_password == confirm_new_password:
+                        users_data = carregar_usuarios()
                         if new_username.strip() == ADMIN_USERNAME:
                             st.error(f"O nome de usuário '{ADMIN_USERNAME}' é reservado para o administrador.")
                         elif new_username.strip() in users_data:
@@ -451,7 +480,7 @@ if st.session_state.logged_in_user is None:
                             users_data[new_username.strip()] = hash_password(new_password.strip())
                             salvar_usuarios(users_data)
                             st.success(f"Conta para '{new_username.strip()}' criada com sucesso! Por favor, faça login.")
-                            st.session_state.creating_new_account = False # Volta para a tela de login
+                            st.session_state.creating_new_account = False
                             st.rerun()
                     else:
                         st.error("Preencha todos os campos, as senhas devem coincidir e não podem ser vazias.")
@@ -460,9 +489,9 @@ if st.session_state.logged_in_user is None:
                     st.session_state.creating_new_account = False
                     st.rerun()
 
-else:
+else: # Usuário logado
     # --- INTERFACE PRINCIPAL DO APLICATIVO ---
-    st.title(f"Sistema de Discursivas — {st.session_state.logged_in_user}")
+    st.title(f"Sistema de Treino para Provas Discursivas de {st.session_state.logged_in_user}")
     st.write("Bem-vindo! Este é o seu sistema de flashcards inteligente com feedback do Gemini!")
 
     # Botão de Logout
@@ -470,285 +499,297 @@ else:
         st.session_state.logged_in_user = None
         st.session_state.feedback_history = []
         st.session_state.current_card_index = 0
+        st.session_state.current_card_index_difficult = 0 # Reseta
         st.session_state.show_expected_answer = False
         st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback ao sair
         st.session_state.ordered_cards_for_session = [] # Limpa a ordem também
+        st.session_state.difficult_cards_for_session = [] # Reseta também
         st.rerun()
 
-    # Define quais abas serão exibidas
+    # Define quais abas serão exibidas e cria as referências para os blocos 'with'
     if st.session_state.logged_in_user == ADMIN_USERNAME:
-        tab_names = ["Praticar", "Gerenciar Cartões", "Métricas de Desempenho"]
-        tab1, tab2, tab3 = st.tabs(tab_names)
+        tab_names_list = ["Todas as Perguntas", "Gerenciar Cartões", "Métricas de Desempenho", "Perguntas Mais Difíceis"]
+        tab1_comp, tab2_comp, tab3_comp, tab4_comp = st.tabs(tab_names_list)
     else:
-        tab_names = ["Praticar", "Métricas de Desempenho"]
-        tab1, tab3 = st.tabs(tab_names)
-        tab2 = None # Garante que tab2 não seja usado se o usuário não for admin
+        tab_names_list = ["Todas as Perguntas", "Métricas de Desempenho", "Perguntas Mais Difíceis"]
+        tab1_comp, tab3_comp, tab4_comp = st.tabs(tab_names_list)
+        tab2_comp = None # Garante que tab2_comp não seja usado se o usuário não for admin
 
-    with tab1: # Aba "Praticar"
-        st.header("Modo de Prática")
+    # --- Funções de Renderização de Conteúdo por Aba ---
+    def render_tab_all_questions():
+        st.header("Modo de Prática: Todas as Perguntas") # NOVO NOME
         
-        # Os cartões agora são os ordenados no login (ou os globais se ainda não ordenou)
-        filtered_base_cards = st.session_state.ordered_cards_for_session # Base para filtragem
+        # current_practice_cards PARA ABA 1: baseada na ordem definida no login
+        current_practice_cards_tab1 = st.session_state.ordered_cards_for_session 
+        
+        # Seletores de Matéria e Assunto para Filtragem na Prática (aba 1)
+        available_materias_tab1 = sorted(list(set([card["materia"] for card in current_practice_cards_tab1]))) if current_practice_cards_tab1 else []
+        selected_materia_tab1 = st.selectbox("Filtrar por Matéria:", ["Todas"] + available_materias_tab1, key="filter_materia_tab1")
 
-        # Seletores de Matéria e Assunto para Filtragem na Prática
-        available_materias = sorted(list(set([card["materia"] for card in filtered_base_cards]))) if filtered_base_cards else []
-        selected_materia_pratica = st.selectbox("Filtrar por Matéria:", ["Todas"] + available_materias, key="filter_materia_pratica")
+        filtered_cards_tab1 = current_practice_cards_tab1
+        if selected_materia_tab1 != "Todas":
+            filtered_cards_tab1 = [card for card in filtered_cards_tab1 if card["materia"] == selected_materia_tab1]
 
-        filtered_cards = filtered_base_cards
-        if selected_materia_pratica != "Todas":
-            filtered_cards = [card for card in filtered_cards if card["materia"] == selected_materia_pratica]
+        available_assuntos_tab1 = sorted(list(set([card["assunto"] for card in filtered_cards_tab1]))) if filtered_cards_tab1 else []
+        selected_assunto_tab1 = st.selectbox("Filtrar por Assunto:", ["Todos"] + available_assuntos_tab1, key="filter_assunto_tab1")
 
-        available_assuntos = sorted(list(set([card["assunto"] for card in filtered_cards]))) if filtered_cards else []
-        selected_assunto_pratica = st.selectbox("Filtrar por Assunto:", ["Todos"] + available_assuntos, key="filter_assunto_pratica")
+        if selected_assunto_tab1 != "Todos":
+            filtered_cards_tab1 = [card for card in filtered_cards_tab1 if card["assunto"] == selected_assunto_tab1]
 
-        if selected_assunto_pratica != "Todos":
-            filtered_cards = [card for card in filtered_cards if card["assunto"] == selected_assunto_pratica]
-
-        if not filtered_cards:
+        # AQUI FOI ONDE O 'else' ESTAVA DANDO ERRO. Ele estava no nível do 'if filtered_cards_tab1:'.
+        # Ao adicionar o 'return' no 'if not filtered_cards_tab1', o 'else' ficava "solto".
+        # A forma correta é que, se não houver cartões, a função simplesmente retorna.
+        # Caso contrário, o resto da função é executado.
+        if not filtered_cards_tab1:
             st.info("Nenhum cartão encontrado com os filtros selecionados. Altere os filtros ou adicione novos cartões.")
+            return # Sai da função se não há cartões para exibir
 
-        if filtered_cards:
-            if st.session_state.current_card_index >= len(filtered_cards):
-                st.session_state.current_card_index = 0
+        # O restante do código da aba 1 (renderização do cartão, botões, feedback) segue aqui.
+        if st.session_state.current_card_index >= len(filtered_cards_tab1):
+            st.session_state.current_card_index = 0
 
-            current_card = filtered_cards[st.session_state.current_card_index]
+        current_card_tab1 = filtered_cards_tab1[st.session_state.current_card_index]
 
-            st.subheader(f"Pergunta ({st.session_state.current_card_index + 1}/{len(filtered_cards)}):")
-            st.info(current_card["pergunta"])
+        st.subheader(f"Pergunta ({st.session_state.current_card_index + 1}/{len(filtered_cards_tab1)}):")
+        st.info(current_card_tab1["pergunta"])
 
-            user_answer = st.text_area("Sua Resposta:",
+        user_answer_tab1 = st.text_area("Sua Resposta:",
                                     height=150,
-                                    key=f"user_answer_input_{st.session_state.current_card_index}")
+                                    key=f"user_answer_input_tab1_{st.session_state.current_card_index}")
 
-            # Botão "Verificar Resposta com Gemini"
-            if st.button("Verificar Resposta com Gemini", key="check_response_btn"):
-                if user_answer.strip():
-                    with st.spinner("Analisando com Gemini..."):
-                        full_feedback_text = comparar_respostas_com_gemini(user_answer, current_card["resposta_esperada"])
-                        parsed_feedback = parse_feedback_sections(full_feedback_text)
-                        
-                        st.session_state.last_gemini_feedback_display_parsed = parsed_feedback
-                        st.session_state.last_gemini_feedback_question = current_card["pergunta"] # Armazena a pergunta para validar
-                        st.session_state.last_gemini_expected_answer = current_card["resposta_esperada"] # Armazena a resposta esperada
+        # Botão "Verificar Resposta com Gemini" (para aba 1)
+        if st.button("Verificar Resposta com Gemini", key="check_response_btn_tab1"):
+            if user_answer_tab1.strip():
+                with st.spinner("Analisando com Gemini..."):
+                    full_feedback_text_tab1 = comparar_respostas_com_gemini(user_answer_tab1, current_card_tab1["resposta_esperada"])
+                    parsed_feedback_tab1 = parse_feedback_sections(full_feedback_text_tab1)
                     
-                    # --- Lógica para SALVAR no histórico ---
-                    stored_score = None
-                    if parsed_feedback.get('score'):
-                        score_match = re.search(r"(\d+)", parsed_feedback['score'])
-                        if score_match:
-                            try:
-                                stored_score = int(score_match.group(1))
-                            except ValueError:
-                                pass 
-                    lacunas_stored = parsed_feedback.get('content_gaps')
-
-                    st.session_state.feedback_history.append({
-                        "materia": current_card["materia"],
-                        "assunto": current_card["assunto"],
-                        "pergunta": current_card["pergunta"],
-                        "nota_sentido": stored_score,
-                        "lacunas_conteudo": lacunas_stored,
-                        "timestamp": datetime.datetime.now().isoformat()
-                    })
-                    salvar_historico_feedback(st.session_state.feedback_history, st.session_state.logged_in_user)
-                    # NÃO TEM MAIS st.rerun() AQUI. O feedback será exibido no mesmo ciclo.
-                else:
-                    st.warning("Por favor, digite sua resposta antes de verificar.")
-
-            # --- Bloco de Exibição do Feedback do Gemini e Resposta Esperada ---
-            # Este bloco SÓ é exibido se o feedback já foi gerado para a pergunta atual (ou persistido)
-            if (st.session_state.last_gemini_feedback_display_parsed is not None and
-                st.session_state.last_gemini_feedback_question == current_card["pergunta"]):
+                    st.session_state.last_gemini_feedback_display_parsed = parsed_feedback_tab1
+                    st.session_state.last_gemini_feedback_question = current_card_tab1["pergunta"]
+                    st.session_state.last_gemini_expected_answer = current_card_tab1["resposta_esperada"]
                 
-                parsed_feedback_to_display = st.session_state.last_gemini_feedback_display_parsed
-                st.subheader("Feedback do Gemini:")
-                if "error" in parsed_feedback_to_display:
-                    st.warning("Erro ao formatar feedback. Exibindo como texto bruto.")
-                    st.write(parsed_feedback_to_display["raw_feedback"])
-                else:
-                    st.markdown(f"**Pontuação de Sentido:** {parsed_feedback_to_display.get('score', 'N/A')}")
-                    st.markdown(f"**Avaliação Principal do Sentido:** {parsed_feedback_to_display.get('meaning_eval', 'N/A')}")
-                    st.markdown(f"**Lacunas de Conteúdo:** {parsed_feedback_to_display.get('content_gaps', 'N/A')}")
-                    st.markdown(f"**Erros Gramaticais/Ortográficos:** {parsed_feedback_to_display.get('grammar_errors', 'N/A')}")
-                    st.markdown(f"**Sugestões Rápidas de Melhoria:** {parsed_feedback_to_display.get('suggestions', 'N/A')}")
+                stored_score_tab1 = None
+                if parsed_feedback_tab1.get('score'):
+                    score_match_tab1 = re.search(r"(\d+)", parsed_feedback_tab1['score'])
+                    if score_match_tab1:
+                        try:
+                            stored_score_tab1 = int(score_match_tab1.group(1))
+                        except ValueError:
+                            pass 
+                lacunas_stored_tab1 = parsed_feedback_tab1.get('content_gaps')
 
-                # Exibir Resposta Esperada automaticamente após o feedback
-                st.subheader("Resposta Esperada:")
-                st.success(current_card["resposta_esperada"])
-            
-            # Botão "Revelar Resposta Esperada"
-            # Este botão é exibido APENAS SE o feedback do Gemini AINDA NÃO foi exibido para esta questão.
-            elif st.button("Revelar Resposta Esperada"):
-                st.session_state.show_expected_answer = True
-                st.session_state.last_gemini_feedback_display_parsed = None # Garante que feedback Gemini some se revelar
-                # Não há st.rerun() aqui, a resposta esperada será exibida no mesmo ciclo.
+                st.session_state.feedback_history.append({
+                    "materia": current_card_tab1["materia"],
+                    "assunto": current_card_tab1["assunto"],
+                    "pergunta": current_card_tab1["pergunta"],
+                    "nota_sentido": stored_score_tab1,
+                    "lacunas_conteudo": lacunas_stored_tab1,
+                    "timestamp": datetime.datetime.now().isoformat()
+                })
+                salvar_historico_feedback(st.session_state.feedback_history, st.session_state.logged_in_user)
+
+                st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega para a atualização da lista de difíceis
                 
-            # Exibir Resposta Esperada se o botão "Revelar" foi clicado
-            if st.session_state.show_expected_answer:
-                st.subheader("Resposta Esperada:")
-                st.success(current_card["resposta_esperada"])
+                difficult_cards_updated = []
+                last_scores_for_difficult = {}
+                for entry in reversed(st.session_state.feedback_history):
+                    card_id_entry = (entry["pergunta"], entry["materia"], entry["assunto"])
+                    if card_id_entry not in last_scores_for_difficult:
+                        last_scores_for_difficult[card_id_entry] = entry.get("nota_sentido")
 
-            # --- Botões de Navegação (Disparam a reordenação APENAS NESTES CLIQUES) ---
-            nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4) # Mais colunas para os novos botões
-            with nav_col1:
-                if st.button("Primeiro Cartão", key="first_card_btn"): # NOVO
-                    st.session_state.current_card_index = 0
-                    st.session_state.show_expected_answer = False
-                    st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback ao mudar
-                    st.rerun() # Dispara reordenação e avanço
-            with nav_col2:
-                if st.button("Cartão Anterior", key="prev_card_btn"):
-                    if st.session_state.current_card_index > 0:
-                        st.session_state.current_card_index -= 1
-                        st.session_state.show_expected_answer = False
-                        st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback ao mudar
-                        st.rerun() # Dispara reordenação e avanço
-                    else:
-                        st.info("Você está no primeiro cartão.")
-            with nav_col3:
-                if st.button("Próximo Cartão", key="next_card_btn"):
-                    if st.session_state.current_card_index < len(filtered_cards) - 1:
-                        st.session_state.current_card_index += 1
-                        st.session_state.show_expected_answer = False
-                        st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback ao mudar
-                        st.rerun() # Dispara reordenação e avanço
-                    else:
-                        st.info("Você está no último cartão.")
-            with nav_col4:
-                if st.button("Último Cartão", key="last_card_btn"): # NOVO
-                    st.session_state.current_card_index = len(filtered_cards) - 1
-                    st.session_state.show_expected_answer = False
-                    st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback ao mudar
-                    st.rerun() # Dispara reordenação e avanço
-
-        else: # Nenhum cartão filtrado para prática
-            if not st.session_state.global_cartoes:
-                st.info("Nenhum cartão carregado. Peça ao administrador para adicionar novos cartões.")
-
-
-    if tab2: # Aba "Gerenciar Cartões" - Só visível para ADMIN
-        with tab2:
-            st.header("Gerenciar Cartões")
-            if st.session_state.logged_in_user != ADMIN_USERNAME:
-                st.warning("Você não tem permissão para gerenciar cartões.")
+                for card_item in st.session_state.global_cartoes:
+                    card_id_item = (card_item["pergunta"], card_item["materia"], card_item["assunto"])
+                    if card_id_item in last_scores_for_difficult and last_scores_for_difficult[card_id_item] is not None and last_scores_for_difficult[card_id_item] < 80:
+                        difficult_cards_updated.append(card_item)
+                st.session_state.difficult_cards_for_session = difficult_cards_updated
             else:
-                st.subheader("Adicionar Novo Cartão")
-                with st.form("add_card_form"): 
-                    nova_materia = st.text_input("Matéria:",
-                                                 value=st.session_state.last_materia_input,
-                                                 key="new_materia_input")
-                    nova_assunto = st.text_input("Assunto:",
-                                                 value=st.session_state.last_assunto_input,
-                                                 key="new_assunto_input")
-                    
-                    nova_pergunta = st.text_area("Nova Pergunta:",
-                                                 height=100,
-                                                 key=f"new_q_input_{st.session_state.add_card_form_key_suffix}")
-                    nova_resposta = st.text_area("Nova Resposta Esperada:",
-                                                 height=100,
-                                                 key=f"new_a_input_{st.session_state.add_card_form_key_suffix}")
-                    
-                    submitted = st.form_submit_button("Adicionar Cartão")
-                    if submitted:
-                        if nova_materia.strip() and nova_assunto.strip() and nova_pergunta.strip() and nova_resposta.strip():
-                            new_card = {
-                                "materia": nova_materia.strip(),
-                                "assunto": nova_assunto.strip(),
-                                "pergunta": nova_pergunta.strip(),
-                                "resposta_esperada": nova_resposta.strip()
-                            }
-                            st.session_state.global_cartoes.append(new_card)
-                            salvar_cartoes_globais(st.session_state.global_cartoes)
-                            
-                            st.session_state.last_materia_input = nova_materia.strip()
-                            st.session_state.last_assunto_input = nova_assunto.strip()
-                            st.session_state.add_card_form_key_suffix += 1
-                            
-                            st.rerun()
-                        else:
-                            st.warning("Por favor, preencha todos os campos para adicionar um cartão.")
+                st.warning("Por favor, digite sua resposta antes de verificar.")
 
-                st.subheader("Cartões Existentes")
-                available_materias_manage = sorted(list(set([card["materia"] for card in st.session_state.global_cartoes]))) if st.session_state.global_cartoes else []
-                selected_materia_manage = st.selectbox("Filtrar por Matéria:", ["Todas"] + available_materias_manage, key="filter_materia_manage")
+        if (st.session_state.last_gemini_feedback_display_parsed is not None and
+            st.session_state.last_gemini_feedback_question == current_card_tab1["pergunta"]):
+            
+            parsed_feedback_to_display = st.session_state.last_gemini_feedback_display_parsed
+            st.subheader("Feedback do Gemini:")
+            if "error" in parsed_feedback_to_display:
+                st.warning("Erro ao formatar feedback. Exibindo como texto bruto.")
+                st.write(parsed_feedback_to_display["raw_feedback"])
+            else:
+                st.markdown(f"**Pontuação de Sentido:** {parsed_feedback_to_display.get('score', 'N/A')}")
+                st.markdown(f"**Avaliação Principal do Sentido:** {parsed_feedback_to_display.get('meaning_eval', 'N/A')}")
+                st.markdown(f"**Lacunas de Conteúdo:** {parsed_feedback_to_display.get('content_gaps', 'N/A')}")
+                st.markdown(f"**Erros Gramaticais/Ortográficos:** {parsed_feedback_to_display.get('grammar_errors', 'N/A')}")
+                st.markdown(f"**Sugestões Rápidas de Melhoria:** {parsed_feedback_to_display.get('suggestions', 'N/A')}")
 
-                displayed_cards = st.session_state.global_cartoes
-                if selected_materia_manage != "Todas":
-                    displayed_cards = [card for card in displayed_cards if card["materia"] == selected_materia_manage]
-                
-                available_assuntos_manage = sorted(list(set([card["assunto"] for card in displayed_cards]))) if displayed_cards else []
-                selected_assunto_manage = st.selectbox("Filtrar por Assunto:", ["Todos"] + available_assuntos_manage, key="filter_assunto_manage")
+            st.subheader("Resposta Esperada:")
+            st.success(current_card_tab1["resposta_esperada"])
+        
+        elif st.button("Revelar Resposta Esperada", key="reveal_btn_tab1"):
+            st.session_state.show_expected_answer = True
+            st.session_state.last_gemini_feedback_display_parsed = None
+            
+        if st.session_state.show_expected_answer:
+            st.subheader("Resposta Esperada:")
+            st.success(current_card_tab1["resposta_esperada"])
 
-                if selected_assunto_manage != "Todos":
-                    displayed_cards = [card for card in displayed_cards if card["assunto"] == selected_assunto_manage]
-
-                if displayed_cards:
-                    for i, card in enumerate(displayed_cards):
-                        original_index = st.session_state.global_cartoes.index(card)
-
-                        with st.expander(f"Cartão {original_index+1} ({card['materia']} - {card['assunto']}): {card['pergunta'][:50]}..."):
-                            st.write("**Matéria:**", card["materia"])
-                            st.write("**Assunto:**", card["assunto"])
-                            st.write("**Pergunta:**", card["pergunta"])
-                            st.write("**Resposta Esperada:**", card["resposta_esperada"])
-
-                            col_edit, col_delete = st.columns(2)
-                            with col_edit:
-                                if st.button(f"Editar", key=f"edit_card_{original_index}"):
-                                    st.session_state.edit_index = original_index
-                                    st.session_state.edit_materia = card["materia"]
-                                    st.session_state.edit_assunto = card["assunto"]
-                                    st.session_state.edit_pergunta = card["pergunta"]
-                                    st.session_state.edit_resposta = card["resposta_esperada"]
-                                    st.rerun()
-
-                            with col_delete:
-                                if st.button(f"Excluir", key=f"delete_card_{original_index}"):
-                                    st.session_state.global_cartoes.pop(original_index)
-                                    salvar_cartoes_globais(st.session_state.global_cartoes)
-                                    if st.session_state.current_card_index >= len(st.session_state.global_cartoes):
-                                        st.session_state.current_card_index = 0
-                                    st.rerun()
-                        st.markdown("---")
-
-                    if 'edit_index' in st.session_state and st.session_state.edit_index is not None:
-                        st.subheader(f"Editar Cartão {st.session_state.edit_index + 1}")
-                        with st.form("edit_card_form"):
-                            edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
-                            edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
-                            edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
-                            edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
-                            col_save, col_cancel = st.columns(2)
-                            with col_save:
-                                edited_submitted = st.form_submit_button("Salvar Edição")
-                            with col_cancel:
-                                cancel_edit = st.form_submit_button("Cancelar Edição")
-
-                            if edited_submitted:
-                                if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
-                                    st.session_state.global_cartoes[st.session_state.edit_index] = {
-                                        "materia": edited_materia.strip(),
-                                        "assunto": edited_assunto.strip(),
-                                        "pergunta": edited_pergunta.strip(),
-                                        "resposta_esperada": edited_resposta.strip()
-                                    }
-                                    salvar_cartoes_globais(st.session_state.global_cartoes)
-                                    st.session_state.edit_index = None
-                                    st.rerun()
-                                else:
-                                    st.warning("Por favor, preencha todos os campos para salvar a edição.")
-                            if cancel_edit:
-                                st.session_state.edit_index = None
-                                st.rerun()
-
+        nav_col1_tab1, nav_col2_tab1, nav_col3_tab1, nav_col4_tab1 = st.columns(4)
+        with nav_col1_tab1:
+            if st.button("Primeiro Cartão", key="first_card_btn_tab1"):
+                st.session_state.current_card_index = 0
+                st.session_state.show_expected_answer = False
+                st.session_state.last_gemini_feedback_display_parsed = None
+                st.rerun()
+        with nav_col2_tab1:
+            if st.button("Cartão Anterior", key="prev_card_btn_tab1"):
+                if st.session_state.current_card_index > 0:
+                    st.session_state.current_card_index -= 1
+                    st.session_state.show_expected_answer = False
+                    st.session_state.last_gemini_feedback_display_parsed = None
+                    st.rerun()
                 else:
-                    if st.session_state.global_cartoes:
-                        st.info("Nenhum cartão encontrado com os filtros selecionados. Altere os filtros.")
+                    st.info("Você está no primeiro cartão.")
+        with nav_col3_tab1:
+            if st.button("Próximo Cartão", key="next_card_btn_tab1"):
+                if st.session_state.current_card_index < len(filtered_cards_tab1) - 1:
+                    st.session_state.current_card_index += 1
+                    st.session_state.show_expected_answer = False
+                    st.session_state.last_gemini_feedback_display_parsed = None
+                    st.rerun()
+                else:
+                    st.info("Você está no último cartão.")
+        with nav_col4_tab1:
+            if st.button("Último Cartão", key="last_card_btn_tab1"):
+                st.session_state.current_card_index = len(filtered_cards_tab1) - 1
+                st.session_state.show_expected_answer = False
+                st.session_state.last_gemini_feedback_display_parsed = None
+                st.rerun()
+
+        # REMOVIDO: O bloco 'else' que estava causando o SyntaxError
+        # A mensagem de "Nenhum cartão carregado" já é tratada por 'if not filtered_cards_tab1: return'
+
+    def render_tab_manage_cards():
+        st.header("Gerenciar Cartões")
+        if st.session_state.logged_in_user != ADMIN_USERNAME:
+            st.warning("Você não tem permissão para gerenciar cartões.")
+            return # Sai da função se não for admin
+
+        st.subheader("Adicionar Novo Cartão")
+        with st.form("add_card_form"): 
+            nova_materia = st.text_input("Matéria:",
+                                         value=st.session_state.last_materia_input,
+                                         key="new_materia_input")
+            nova_assunto = st.text_input("Assunto:",
+                                         value=st.session_state.last_assunto_input,
+                                         key="new_assunto_input")
+            
+            nova_pergunta = st.text_area("Nova Pergunta:",
+                                         height=100,
+                                         key=f"new_q_input_{st.session_state.add_card_form_key_suffix}")
+            nova_resposta = st.text_area("Nova Resposta Esperada:",
+                                         height=100,
+                                         key=f"new_a_input_{st.session_state.add_card_form_key_suffix}")
+            
+            submitted = st.form_submit_button("Adicionar Cartão")
+            if submitted:
+                if nova_materia.strip() and nova_assunto.strip() and nova_pergunta.strip() and nova_resposta.strip():
+                    new_card = {
+                        "materia": nova_materia.strip(),
+                        "assunto": nova_assunto.strip(),
+                        "pergunta": nova_pergunta.strip(),
+                        "resposta_esperada": nova_resposta.strip()
+                    }
+                    st.session_state.global_cartoes.append(new_card)
+                    salvar_cartoes_globais(st.session_state.global_cartoes) 
+                    
+                    st.session_state.last_materia_input = nova_materia.strip()
+                    st.session_state.last_assunto_input = nova_assunto.strip()
+                    st.session_state.add_card_form_key_suffix += 1
+                    
+                    st.rerun()
+                else:
+                    st.warning("Por favor, preencha todos os campos para adicionar um cartão.")
+
+        st.subheader("Cartões Existentes")
+        available_materias_manage = sorted(list(set([card["materia"] for card in st.session_state.global_cartoes]))) if st.session_state.global_cartoes else []
+        selected_materia_manage = st.selectbox("Filtrar por Matéria:", ["Todas"] + available_materias_manage, key="filter_materia_manage")
+
+        displayed_cards = st.session_state.global_cartoes
+        if selected_materia_manage != "Todas":
+            displayed_cards = [card for card in displayed_cards if card["materia"] == selected_materia_manage]
+        
+        available_assuntos_manage = sorted(list(set([card["assunto"] for card in displayed_cards]))) if displayed_cards else []
+        selected_assunto_manage = st.selectbox("Filtrar por Assunto:", ["Todos"] + available_assuntos_manage, key="filter_assunto_manage")
+
+        if selected_assunto_manage != "Todos":
+            displayed_cards = [card for card in displayed_cards if card["assunto"] == selected_assunto_manage]
+
+        if not displayed_cards: # ATUALIZADO: Usando um IF para a mensagem
+            if st.session_state.global_cartoes:
+                st.info("Nenhum cartão encontrado com os filtros selecionados. Altere os filtros.")
+            else:
+                st.info("Nenhum cartão adicionado ainda. Use o formulário acima para criar seu primeiro cartão.")
+            return # Sai da função se não há cartões para exibir
+
+        # O restante do código de exibição/edição/exclusão de cartões segue aqui
+        for i, card in enumerate(displayed_cards):
+            original_index = st.session_state.global_cartoes.index(card)
+
+            with st.expander(f"Cartão {original_index+1} ({card['materia']} - {card['assunto']}): {card['pergunta'][:50]}..."):
+                st.write("**Matéria:**", card["materia"])
+                st.write("**Assunto:**", card["assunto"])
+                st.write("**Pergunta:**", card["pergunta"])
+                st.write("**Resposta Esperada:**", card["resposta_esperada"])
+
+                col_edit, col_delete = st.columns(2)
+                with col_edit:
+                    if st.button(f"Editar", key=f"edit_card_{original_index}"):
+                        st.session_state.edit_index = original_index
+                        st.session_state.edit_materia = card["materia"]
+                        st.session_state.edit_assunto = card["assunto"]
+                        st.session_state.edit_pergunta = card["pergunta"]
+                        st.session_state.edit_resposta = card["resposta_esperada"]
+                        st.rerun()
+
+                with col_delete:
+                    if st.button(f"Excluir", key=f"delete_card_{original_index}"):
+                        st.session_state.global_cartoes.pop(original_index)
+                        salvar_cartoes_globais(st.session_state.global_cartoes)
+                        if st.session_state.current_card_index >= len(st.session_state.global_cartoes):
+                            st.session_state.current_card_index = 0
+                        st.rerun()
+            st.markdown("---")
+
+        if 'edit_index' in st.session_state and st.session_state.edit_index is not None:
+            st.subheader(f"Editar Cartão {st.session_state.edit_index + 1}")
+            with st.form("edit_card_form"):
+                edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
+                edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
+                edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
+                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
+                col_save, col_cancel = st.columns(2)
+                with col_save:
+                    edited_submitted = st.form_submit_button("Salvar Edição")
+                with col_cancel:
+                    cancel_edit = st.form_submit_button("Cancelar Edição")
+
+                if edited_submitted:
+                    if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
+                        st.session_state.global_cartoes[st.session_state.edit_index] = {
+                            "materia": edited_materia.strip(),
+                            "assunto": edited_assunto.strip(),
+                            "pergunta": edited_pergunta.strip(),
+                            "resposta_esperada": edited_resposta.strip()
+                        }
+                        salvar_cartoes_globais(st.session_state.global_cartoes)
+                        st.session_state.edit_index = None
+                        st.rerun()
                     else:
-                        st.info("Nenhum cartão adicionado ainda. Use o formulário acima para criar seu primeiro cartão.")
+                        st.warning("Por favor, preencha todos os campos para salvar a edição.")
+                elif cancel_edit: # Corrigido para 'elif'
+                    st.session_state.edit_index = None
+                    st.rerun()
 
 
-    with tab3: # Aba "Métricas de Desempenho"
+    def render_tab_metrics():
         st.header("Métricas de Desempenho")
         st.write("Aqui você pode acompanhar seu histórico de respostas e o feedback do Gemini.")
 
@@ -765,43 +806,189 @@ else:
         if selected_assunto_metrics != "Todos":
             filtered_history = [entry for entry in filtered_history if entry["assunto"] == selected_assunto_metrics]
 
-        if filtered_history:
-            st.subheader("Resumo dos Feedbacks:")
+        if not filtered_history: # ATUALIZADO: Usando um IF para a mensagem
+            st.info("Nenhuma resposta foi avaliada com os filtros selecionados. Comece a praticar na aba 'Todas as Perguntas'!")
+            return # Sai da função se não há histórico para exibir
             
-            total_pontuacao = 0
-            pontuacoes_validas = 0
+        # O restante do código de métricas segue aqui.
+        st.subheader("Resumo dos Feedbacks:")
+        
+        total_pontuacao = 0
+        pontuacoes_validas = 0
 
-            for entry in filtered_history:
-                if entry.get("nota_sentido") is not None:
-                    total_pontuacao += entry["nota_sentido"]
-                    pontuacoes_validas += 1
+        for entry in filtered_history:
+            if entry.get("nota_sentido") is not None:
+                total_pontuacao += entry["nota_sentido"]
+                pontuacoes_validas += 1
 
-            total_feedbacks = len(filtered_history)
+        total_feedbacks = len(filtered_history)
 
-            st.write(f"**Total de Respostas Avaliadas (com filtros):** {total_feedbacks}")
-            if pontuacoes_validas > 0:
-                st.markdown(f"**Pontuação Média de Sentido (com filtros):** **{total_pontuacao / pontuacoes_validas:.1f}%**")
-            else:
-                st.markdown(f"**Pontuação Média de Sentido (com filtros):** N/A (sem pontuações registradas)")
-
-            st.subheader("Histórico Detalhado:")
-            if st.button("Limpar Histórico de Desempenho", type="secondary"):
-                st.session_state.feedback_history = []
-                salvar_historico_feedback(st.session_state.feedback_history, st.session_state.logged_in_user)
-                st.rerun()
-
-            for i, entry in enumerate(reversed(filtered_history)):
-                st.markdown(f"**--- Resposta {len(filtered_history) - i} ({entry['timestamp'].split('T')[0]}) ---**")
-                st.write(f"**Matéria:** {entry['materia']}")
-                st.write(f"**Assunto:** {entry['assunto']}")
-                st.write(f"**Pergunta:** {entry['pergunta']}")
-                
-                st.markdown(f"**Nota de Sentido:** {entry.get('nota_sentido', 'N/A')}%")
-                if entry.get('lacunas_conteudo'):
-                    st.markdown(f"**Lacunas de Conteúdo:** {entry['lacunas_conteudo']}")
-                else:
-                    st.markdown("**Lacunas de Conteúdo:** Nenhuma lacuna significativa.")
-                
-                st.markdown("---")
+        st.write(f"**Total de Respostas Avaliadas (com filtros):** {total_feedbacks}")
+        if pontuacoes_validas > 0:
+            st.markdown(f"**Pontuação Média de Sentido (com filtros):** **{total_pontuacao / pontuacoes_validas:.1f}%**")
         else:
-            st.info("Nenhuma resposta foi avaliada com os filtros selecionados. Comece a praticar na aba 'Praticar'!")
+            st.markdown(f"**Pontuação Média de Sentido (com filtros):** N/A (sem pontuações registradas)")
+
+        st.subheader("Histórico Detalhado:")
+        if st.button("Limpar Histórico de Desempenho", type="secondary"):
+            st.session_state.feedback_history = []
+            salvar_historico_feedback(st.session_state.feedback_history, st.session_state.logged_in_user)
+            st.rerun()
+
+        for i, entry in enumerate(reversed(filtered_history)):
+            st.markdown(f"**--- Resposta {len(filtered_history) - i} ({entry['timestamp'].split('T')[0]}) ---**")
+            st.write(f"**Matéria:** {entry['materia']}")
+            st.write(f"**Assunto:** {entry['assunto']}")
+            st.write(f"**Pergunta:** {entry['pergunta']}")
+            
+            st.markdown(f"**Nota de Sentido:** {entry.get('nota_sentido', 'N/A')}%")
+            if entry.get('lacunas_conteudo'):
+                st.markdown(f"**Lacunas de Conteúdo:** {entry['lacunas_conteudo']}")
+            else:
+                st.markdown("**Lacunas de Conteúdo:** Nenhuma lacuna significativa.")
+            
+            st.markdown("---")
+
+
+    def render_tab_difficult_questions():
+        st.header("Modo de Prática: Perguntas Mais Difíceis")
+
+        current_practice_cards_difficult = st.session_state.difficult_cards_for_session
+        
+        available_materias_difficult = sorted(list(set([card["materia"] for card in current_practice_cards_difficult]))) if current_practice_cards_difficult else []
+        selected_materia_difficult = st.selectbox("Filtrar por Matéria:", ["Todas"] + available_materias_difficult, key="filter_materia_difficult")
+
+        filtered_cards_difficult = current_practice_cards_difficult
+        if selected_materia_difficult != "Todas":
+            filtered_cards_difficult = [card for card in filtered_cards_difficult if card["materia"] == selected_materia_difficult]
+
+        available_assuntos_difficult = sorted(list(set([card["assunto"] for card in filtered_cards_difficult]))) if filtered_cards_difficult else []
+        selected_assunto_difficult = st.selectbox("Filtrar por Assunto:", ["Todos"] + available_assuntos_difficult, key="filter_assunto_difficult")
+
+        if selected_assunto_difficult != "Todos":
+            filtered_cards_difficult = [card for card in filtered_cards_difficult if card["assunto"] == selected_assunto_difficult]
+
+        # AQUI FOI ONDE O 'else' ESTAVA DANDO ERRO.
+        if not filtered_cards_difficult: # ATUALIZADO: Usando um IF para a mensagem
+            st.info("Parabéns! Não há perguntas classificadas como 'difíceis' com os filtros selecionados, ou elas ainda não foram respondidas e pontuadas abaixo de 80%.")
+            return # Sai da função se não há cartões para exibir
+
+        # O restante do código da aba Difíceis segue aqui.
+        if st.session_state.current_card_index_difficult >= len(filtered_cards_difficult):
+            st.session_state.current_card_index_difficult = 0 # Reseta se o índice for inválido
+
+        current_card_difficult = filtered_cards_difficult[st.session_state.current_card_index_difficult]
+
+        st.subheader(f"Pergunta ({st.session_state.current_card_index_difficult + 1}/{len(filtered_cards_difficult)}):")
+        st.info(current_card_difficult["pergunta"])
+
+        user_answer_difficult = st.text_area("Sua Resposta:",
+                                    height=150,
+                                    key=f"user_answer_input_difficult_{st.session_state.current_card_index_difficult}")
+
+        if st.button("Verificar Resposta com Gemini (Difíceis)", key="check_response_btn_difficult"):
+            if user_answer_difficult.strip():
+                with st.spinner("Analisando com Gemini..."):
+                    full_feedback_text_difficult = comparar_respostas_com_gemini(user_answer_difficult, current_card_difficult["resposta_esperada"])
+                    parsed_feedback_difficult = parse_feedback_sections(full_feedback_text_difficult)
+                    
+                    st.session_state.last_gemini_feedback_display_parsed = parsed_feedback_difficult # Usa o mesmo para exibir
+                    st.session_state.last_gemini_feedback_question = current_card_difficult["pergunta"]
+                    st.session_state.last_gemini_expected_answer = current_card_difficult["resposta_esperada"]
+                
+                stored_score_difficult = None
+                if parsed_feedback_difficult.get('score'):
+                    score_match_difficult = re.search(r"(\d+)", parsed_feedback_difficult['score'])
+                    if score_match_difficult:
+                        try:
+                            stored_score_difficult = int(score_match_difficult.group(1))
+                        except ValueError:
+                            pass 
+                lacunas_stored_difficult = parsed_feedback_difficult.get('content_gaps')
+
+                st.session_state.feedback_history.append({
+                    "materia": current_card_difficult["materia"],
+                    "assunto": current_card_difficult["assunto"],
+                    "pergunta": current_card_difficult["pergunta"],
+                    "nota_sentido": stored_score_difficult,
+                    "lacunas_conteudo": lacunas_stored_difficult,
+                    "timestamp": datetime.datetime.now().isoformat()
+                })
+                salvar_historico_feedback(st.session_state.feedback_history, st.session_state.logged_in_user)
+
+                # NÃO ATUALIZA A LISTA DE DIFÍCEIS AQUI. APENAS NO RESPOSTA NA ABA "TODAS AS PERGUNTAS" OU NO LOGIN.
+                # Isso garante o comportamento especificado de que responder aqui não altera a lista de difíceis.
+            else:
+                st.warning("Por favor, digite sua resposta antes de verificar.")
+
+        if (st.session_state.last_gemini_feedback_display_parsed is not None and
+            st.session_state.last_gemini_feedback_question == current_card_difficult["pergunta"]):
+            
+            parsed_feedback_to_display = st.session_state.last_gemini_feedback_display_parsed
+            st.subheader("Feedback do Gemini:")
+            if "error" in parsed_feedback_to_display:
+                st.warning("Erro ao formatar feedback. Exibindo como texto bruto.")
+                st.write(parsed_feedback_to_display["raw_feedback"])
+            else:
+                st.markdown(f"**Pontuação de Sentido:** {parsed_feedback_to_display.get('score', 'N/A')}")
+                st.markdown(f"**Avaliação Principal do Sentido:** {parsed_feedback_to_display.get('meaning_eval', 'N/A')}")
+                st.markdown(f"**Lacunas de Conteúdo:** {parsed_feedback_to_display.get('content_gaps', 'N/A')}")
+                st.markdown(f"**Erros Gramaticais/Ortográficos:** {parsed_feedback_to_display.get('grammar_errors', 'N/A')}")
+                st.markdown(f"**Sugestões Rápidas de Melhoria:** {parsed_feedback_to_display.get('suggestions', 'N/A')}")
+
+            st.subheader("Resposta Esperada:")
+            st.success(current_card_difficult["resposta_esperada"])
+        
+        elif st.button("Revelar Resposta Esperada (Difíceis)", key="reveal_btn_difficult"):
+            st.session_state.show_expected_answer = True
+            st.session_state.last_gemini_feedback_display_parsed = None
+            
+        if st.session_state.show_expected_answer:
+            st.subheader("Resposta Esperada:")
+            st.success(current_card_difficult["resposta_esperada"])
+
+        nav_col1_d, nav_col2_d, nav_col3_d, nav_col4_d = st.columns(4)
+        with nav_col1_d:
+            if st.button("Primeiro (Difíceis)", key="first_card_btn_difficult"):
+                st.session_state.current_card_index_difficult = 0
+                st.session_state.show_expected_answer = False
+                st.session_state.last_gemini_feedback_display_parsed = None
+                st.rerun()
+            with nav_col2_d:
+                if st.button("Anterior (Difíceis)", key="prev_card_btn_difficult"):
+                    if st.session_state.current_card_index_difficult > 0:
+                        st.session_state.current_card_index_difficult -= 1
+                        st.session_state.show_expected_answer = False
+                        st.session_state.last_gemini_feedback_display_parsed = None
+                        st.rerun()
+                    else:
+                        st.info("Você está no primeiro cartão difícil.")
+            with nav_col3_d:
+                if st.button("Próximo (Difíceis)", key="next_card_btn_difficult"):
+                    if st.session_state.current_card_index_difficult < len(filtered_cards_difficult) - 1:
+                        st.session_state.current_card_index_difficult += 1
+                        st.session_state.show_expected_answer = False
+                        st.session_state.last_gemini_feedback_display_parsed = None
+                        st.rerun()
+                    else:
+                        st.info("Você está no último cartão difícil.")
+            with nav_col4_d:
+                if st.button("Último (Difíceis)", key="last_card_btn_difficult"):
+                    st.session_state.current_card_index_difficult = len(filtered_cards_difficult) - 1
+                    st.session_state.show_expected_answer = False
+                    st.session_state.last_gemini_feedback_display_parsed = None
+                    st.rerun()
+
+
+    # --- Lógica de Renderização das Abas (Chamadas de Função) ---
+    # As funções de renderização são chamadas dentro dos blocos 'with' dos st.tabs().
+    with tab1_comp:
+        render_tab_all_questions()
+    if tab2_comp: # Apenas se o admin estiver logado
+        with tab2_comp:
+            render_tab_manage_cards()
+    with tab3_comp:
+        render_tab_metrics()
+    if tab4_comp: # Apenas se a aba existir (visível para não-admin também)
+        with tab4_comp:
+            render_tab_difficult_questions()
