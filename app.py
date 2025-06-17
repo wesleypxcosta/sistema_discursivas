@@ -4,7 +4,7 @@ import google.generativeai as genai
 import streamlit as st
 import datetime
 import re
-import hashlib
+import hashlib # Importa para hashing de senhas
 
 # --- ESTILIZAÇÃO CUSTOMIZADA DA INTERFACE (CSS INJETADO) ---
 st.markdown(
@@ -106,7 +106,7 @@ model = genai.GenerativeModel('models/gemini-2.5-flash-preview-05-20')
 
 # --- Constantes para Nomes de Arquivo e Diretório Base ---
 BASE_DATA_DIR = "data"
-GLOBAL_CARDS_FILE = os.path.join(BASE_DATA_DIR, "global_cards.json")
+CARDS_FILENAME = "cards.json" # nome do arquivo de cartões dentro da pasta do usuário
 FEEDBACK_HISTORY_FILENAME = "feedback_history.json"
 USERS_FILE = os.path.join(BASE_DATA_DIR, "users.json")
 
@@ -120,37 +120,41 @@ def get_user_data_path(username):
     os.makedirs(user_dir, exist_ok=True) # Cria o diretório se não existir
     return user_dir
 
+def get_cards_file_path(username):
+    """Retorna o caminho completo do arquivo de cartões para um usuário."""
+    return os.path.join(get_user_data_path(username), CARDS_FILENAME)
+
 def get_feedback_history_file_path(username):
     """Retorna o caminho completo do arquivo de histórico para um usuário."""
     return os.path.join(get_user_data_path(username), FEEDBACK_HISTORY_FILENAME)
 
-# --- Funções de Manipulação de Cartões (Global) ---
-def carregar_cartoes_globais():
+# --- Funções de Manipulação de Cartões (POR USUÁRIO) ---
+def carregar_cartoes(username): # AGORA CARREGA CARTÕES DO USUÁRIO
     """
-    Carrega as perguntas e respostas esperadas do arquivo global de cartões.
+    Carrega as perguntas e respostas esperadas de um arquivo JSON para um usuário específico.
     """
+    caminho_arquivo = get_cards_file_path(username)
     try:
-        os.makedirs(BASE_DATA_DIR, exist_ok=True)
-        with open(GLOBAL_CARDS_FILE, 'r', encoding='utf-8') as f:
+        with open(caminho_arquivo, 'r', encoding='utf-8') as f:
             cartoes = json.load(f)
         return cartoes
     except FileNotFoundError:
         return []
     except json.JSONDecodeError:
-        st.error(f"Erro: O arquivo de cartões global '{GLOBAL_CARDS_FILE}' está mal formatado (JSON inválido).")
+        st.error(f"Erro: O arquivo de cartões de '{username}' está mal formatado (JSON inválido).")
         return []
 
-def salvar_cartoes_globais(cartoes_data):
+def salvar_cartoes(cartoes_data, username): # AGORA SALVA CARTÕES DO USUÁRIO
     """
-    Salva a lista de cartões no arquivo global de cartões.
+    Salva a lista de cartões em um arquivo JSON para um usuário específico.
     """
+    caminho_arquivo = get_cards_file_path(username)
     try:
-        os.makedirs(BASE_DATA_DIR, exist_ok=True)
-        with open(GLOBAL_CARDS_FILE, 'w', encoding='utf-8') as f:
+        with open(caminho_arquivo, 'w', encoding='utf-8') as f:
             json.dump(cartoes_data, f, indent=4, ensure_ascii=False)
-        st.success(f"Cartões globais salvos com sucesso!")
+        st.success(f"Cartões de '{username}' salvos com sucesso!")
     except Exception as e:
-        st.error(f"Erro ao salvar cartões globais: {e}")
+        st.error(f"Erro ao salvar cartões de '{username}': {e}")
 
 # Funções de histórico de feedback (com username)
 def carregar_historico_feedback(username):
@@ -207,23 +211,13 @@ def salvar_usuarios(users_data):
         st.error(f"Erro ao salvar usuários: {e}")
 
 # Garante que o usuário admin exista na primeira execução
-def inicializar_admin():
+# (Assume que o admin é criado manualmente em users.json ou por um script inicial)
+def inicializar_admin_existencia():
     users = carregar_usuarios()
     if ADMIN_USERNAME not in users:
-        st.sidebar.warning(f"O usuário administrador ('{ADMIN_USERNAME}') não existe. Por favor, crie-o agora.")
-        with st.form("admin_creation_form"):
-            admin_password = st.text_input(f"Defina a senha para '{ADMIN_USERNAME}':", type="password", key="admin_pass_init")
-            confirm_admin_password = st.text_input("Confirme a senha:", type="password", key="admin_pass_confirm_init")
-            if st.form_submit_button("Criar Usuário Administrador"):
-                if admin_password == confirm_admin_password and admin_password.strip():
-                    users[ADMIN_USERNAME] = hash_password(admin_password)
-                    salvar_usuarios(users)
-                    st.success(f"Usuário '{ADMIN_USERNAME}' criado com sucesso! Por favor, faça login.")
-                    st.rerun()
-                else:
-                    st.error("As senhas não coincidem ou estão vazias. Tente novamente.")
-        return False # Indica que a criação está emS andamento, não prossegue para o login
-    return True # Indica que o admin existe e pode prosseguir para o login
+        st.sidebar.warning(f"O usuário administrador ('{ADMIN_USERNAME}') não existe. Por favor, crie-o manualmente no '{USERS_FILE}' para iniciar o aplicativo (ex: {{ \"admin\": \"{hash_password('adminpass')}\" }}).")
+        st.stop() # App não pode iniciar sem admin para criar outros usuários
+    return True
 
 
 # --- Função de Interação com o Gemini ---
@@ -246,19 +240,19 @@ def comparar_respostas_com_gemini(resposta_usuario, resposta_esperada):
     **Estrutura de Feedback Requerida:**
 
     **1. Pontuação de Sentido (0-100):**
-    [Uma pontuação numérica de 0 a 100% baseada na similaridade de sentido com a Resposta Esperada. 100% = sentido idêntico e completo.]
+    [Uma pontuação numérica de 0 a 100% baseada na similaridade de sentido com la Resposta Esperada. 100% = sentido idêntico e completo.]
 
     **2. Avaliação Principal do Sentido:**
     [Feedback qualitativo muito breve (ex: "Excelente.", "Bom, mas faltou X.", "Incompleto.", "Incorreto.").]
 
     **3. Lacunas de Conteúdo:**
-    [Liste os pontos chave da Resposta Esperada que NÃO foram abordados ou foram abordados de forma insuficiente na Resposta do Usuário. Use bullet points sucintos. Se não houver lacunas, diga "Nenhuma lacuna significativa."]
+    [Liste os puntos clave de la Resposta Esperada que NÃO foram abordados ou foram abordados de forma insuficiente na Resposta do Usuário. Use bullet points sucintos. Se não houver lacunas, diga "Nenhuma lacuna significativa."]
 
     **4. Erros Gramaticais/Ortográficos:**
     [Liste os principais erros encontrados na 'Resposta do Usuário'. Formato: 'Palavra/Frase Incorreta' -> 'Sugestão de Correção'. Se não houver, diga "Nenhum erro encontrado."]
 
     **5. Sugestões Rápidas de Melhoria:**
-    [Sugestões muito concisas para aprimorar a resposta em termos de clareza, concisão e correção, baseadas nos erros e lacunas. Use bullet points.]
+    [Sugestões muito concisas para aprimorar la resposta em termos de clareza, concisão e correção, baseadas nos erros e lacunas. Use bullet points.]
 
     ---
     Resposta Esperada:
@@ -326,79 +320,57 @@ def parse_feedback_sections(full_feedback_text):
 
 
 # --- INICIALIZAÇÃO DOS ESTADOS DO STREAMLIT ---
-# IMPORTANTES: Garante que as variáveis de sessão são inicializadas antes de serem usadas
 if 'logged_in_user' not in st.session_state:
     st.session_state.logged_in_user = None
 
-# Acesso global aos cartões (sempre carregado)
-if 'global_cartoes' not in st.session_state:
-    st.session_state.global_cartoes = carregar_cartoes_globais()
+# st.session_state.user_cartoes para os cartões do usuário logado
+if 'user_cartoes' not in st.session_state:
+    st.session_state.user_cartoes = []
 
-# Inicialização do histórico de feedback, mas só é carregado após login
+# global_cartoes foi removido.
+
 if 'feedback_history' not in st.session_state:
-    st.session_state.feedback_history = [] # Inicializa vazio, será carregado no login
+    st.session_state.feedback_history = []
 
 if 'current_card_index' not in st.session_state:
     st.session_state.current_card_index = 0
 if 'show_expected_answer' not in st.session_state:
     st.session_state.show_expected_answer = False
 
-# Estado para armazenar o feedback completo do Gemini para exibição persistente
-if 'last_gemini_feedback_display_parsed' not in st.session_state: # AGORA ARMAZENA O DICIONÁRIO PARSEADO
+if 'last_gemini_feedback_display_parsed' not in st.session_state:
     st.session_state.last_gemini_feedback_display_parsed = None
 
-# Estado para armazenar a pergunta do último feedback (para exibir junto ao feedback persistente)
 if 'last_gemini_feedback_question' not in st.session_state:
     st.session_state.last_gemini_feedback_question = None
 
-# Estado para armazenar a resposta esperada do último feedback (para exibir junto ao feedback persistente)
 if 'last_gemini_expected_answer' not in st.session_state:
     st.session_state.last_gemini_expected_answer = None
 
-# Estado para controlar o key dinâmico dos campos de Pergunta e Resposta para limpeza
 if 'add_card_form_key_suffix' not in st.session_state:
     st.session_state.add_card_form_key_suffix = 0
 
-# NOVO: Estados para persistir valores de Matéria e Assunto no formulário de adição
 if 'last_materia_input' not in st.session_state:
     st.session_state.last_materia_input = ""
 if 'last_assunto_input' not in st.session_state:
     st.session_state.last_assunto_input = ""
 
-# Estado para armazenar a ordem de cartões reordenada para a sessão atual do usuário
 if 'ordered_cards_for_session' not in st.session_state:
-    st.session_state.ordered_cards_for_session = [] # Será preenchido no login
+    st.session_state.ordered_cards_for_session = []
 
-# Estado para armazenar a lista de cartões "difíceis" para a sessão atual do usuário
 if 'difficult_cards_for_session' not in st.session_state:
     st.session_state.difficult_cards_for_session = []
 
-# Estado para controlar o índice do cartão na aba "Perguntas Mais Difíceis"
 if 'current_card_index_difficult' not in st.session_state:
     st.session_state.current_card_index_difficult = 0
 
 
 # --- LÓGICA PRINCIPAL DO APP ---
+# Garante que o admin exista antes de prosseguir com qualquer outra coisa
+if not inicializar_admin_existencia(): 
+    st.stop() # Se o admin não existe e o formulário de criação está sendo exibido, pare aqui.
+
 # Se o usuário não estiver logado, exibe a tela de login
 if st.session_state.logged_in_user is None:
-    # Garante que o admin exista na primeira execução
-    users = carregar_usuarios()
-    if ADMIN_USERNAME not in users:
-        st.sidebar.warning(f"O usuário administrador ('{ADMIN_USERNAME}') não existe. Por favor, crie-o agora.")
-        with st.form("admin_creation_form"):
-            admin_password = st.text_input(f"Defina a senha para '{ADMIN_USERNAME}':", type="password", key="admin_pass_init")
-            confirm_admin_password = st.text_input("Confirme a senha:", type="password", key="admin_pass_confirm_init")
-            if st.form_submit_button("Criar Usuário Administrador"):
-                if admin_password == confirm_admin_password and admin_password.strip():
-                    users[ADMIN_USERNAME] = hash_password(admin_password)
-                    salvar_usuarios(users)
-                    st.success(f"Usuário '{ADMIN_USERNAME}' criado com sucesso! Por favor, faça login.")
-                    st.rerun()
-                else:
-                    st.error("As senhas não coincidem ou estão vazias. Tente novamente.")
-        st.stop()
-
-
     st.title("Bem-vindo ao Sistema de Treino!")
     st.subheader("Por favor, faça login para continuar:")
 
@@ -414,31 +386,28 @@ if st.session_state.logged_in_user is None:
                 if username_login.strip() in users_data and users_data[username_login.strip()] == hash_password(password_login.strip()):
                     st.session_state.logged_in_user = username_login.strip()
                     st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user)
+                    st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user)
                     
                     # --- Lógica de Reordenação da aba "Todas as Perguntas" (no Login) ---
-                    # Calcula a última nota para cada cartão global para ordenação
                     card_latest_scores = {}
                     for entry in reversed(st.session_state.feedback_history):
                         card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
-                        if card_id not in card_latest_scores: # Pega apenas a primeira (última) ocorrência
+                        if card_id not in card_latest_scores:
                             card_latest_scores[card_id] = entry.get("nota_sentido")
 
                     cards_for_ordering = []
-                    for card in st.session_state.global_cartoes:
+                    for card in st.session_state.user_cartoes: 
                         card_id = (card["pergunta"], card["materia"], card["assunto"])
-                        # Se o cartão tem uma nota, usa a última; senão, usa -1 para priorizar
                         score_to_order = card_latest_scores.get(card_id, -1) 
                         cards_for_ordering.append((card, score_to_order))
 
-                    # Ordena: Menor nota primeiro (pior desempenho vem antes)
                     st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted(cards_for_ordering, key=lambda x: x[1])]
                     # --- FIM DA REORDENAÇÃO DA ABA "TODAS AS PERGUNTAS" NO LOGIN ---
 
                     # --- Lógica para Identificar Perguntas Mais Difíceis (no Login) ---
                     difficult_cards = []
-                    for card in st.session_state.global_cartoes:
+                    for card in st.session_state.user_cartoes: 
                         card_id = (card["pergunta"], card["materia"], card["assunto"])
-                        # Uma pergunta é difícil se foi respondida E a última nota foi < 80%
                         if card_id in card_latest_scores and card_latest_scores[card_id] is not None and card_latest_scores[card_id] < 80:
                             difficult_cards.append(card)
                     st.session_state.difficult_cards_for_session = difficult_cards
@@ -446,51 +415,20 @@ if st.session_state.logged_in_user is None:
 
                     # Resetar outros estados para o novo usuário
                     st.session_state.current_card_index = 0
-                    st.session_state.current_card_index_difficult = 0 # Reseta o índice da aba difícil
+                    st.session_state.current_card_index_difficult = 0
                     st.session_state.show_expected_answer = False
-                    st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback anterior
+                    st.session_state.last_gemini_feedback_display_parsed = None
                     st.rerun()
                 else:
                     st.error("Nome de usuário ou senha incorretos.")
             else:
                 st.warning("Por favor, digite nome de usuário e senha.")
-    with col_login_btns_2:
-        # Botão para criar novo usuário (não-admin)
-        if st.button("Criar Nova Conta", key="create_account_button"):
-            st.session_state.creating_new_account = True
-            st.rerun()
-
-    # Lógica de criação de nova conta (fora do formulário de login)
-    if st.session_state.get('creating_new_account', False):
-        st.subheader("Criar Nova Conta")
-        with st.form("create_new_account_form"):
-            new_username = st.text_input("Novo Nome de Usuário:", key="new_user_input")
-            new_password = st.text_input("Nova Senha:", type="password", key="new_pass_input")
-            confirm_new_password = st.text_input("Confirme a Senha:", type="password", key="confirm_new_pass_input")
-            col_create, col_cancel_create = st.columns(2)
-            with col_create:
-                if st.form_submit_button("Registrar"):
-                    if new_username.strip() and new_password.strip() and new_password == confirm_new_password:
-                        users_data = carregar_usuarios()
-                        if new_username.strip() == ADMIN_USERNAME:
-                            st.error(f"O nome de usuário '{ADMIN_USERNAME}' é reservado para o administrador.")
-                        elif new_username.strip() in users_data:
-                            st.error(f"O nome de usuário '{new_username.strip()}' já existe.")
-                        else:
-                            users_data[new_username.strip()] = hash_password(new_password.strip())
-                            salvar_usuarios(users_data)
-                            st.success(f"Conta para '{new_username.strip()}' criada com sucesso! Por favor, faça login.")
-                            st.session_state.creating_new_account = False
-                            st.rerun()
-                    else:
-                        st.error("Preencha todos os campos, as senhas devem coincidir e não podem ser vazias.")
-            with col_cancel_create:
-                if st.form_submit_button("Cancelar"):
-                    st.session_state.creating_new_account = False
-                    st.rerun()
-
+        with col_login_btns_2:
+            pass
+    
+    pass 
+    
 else: # Usuário logado
-    # --- INTERFACE PRINCIPAL DO APLICATIVO ---
     st.title(f"Sistema de Treino para Provas Discursivas de {st.session_state.logged_in_user}")
     st.write("Bem-vindo! Este é o seu sistema de flashcards inteligente com feedback do Gemini!")
 
@@ -498,31 +436,35 @@ else: # Usuário logado
     if st.sidebar.button("Sair", key="logout_button"):
         st.session_state.logged_in_user = None
         st.session_state.feedback_history = []
+        st.session_state.user_cartoes = []
         st.session_state.current_card_index = 0
-        st.session_state.current_card_index_difficult = 0 # Reseta
+        st.session_state.current_card_index_difficult = 0
         st.session_state.show_expected_answer = False
-        st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback ao sair
-        st.session_state.ordered_cards_for_session = [] # Limpa a ordem também
-        st.session_state.difficult_cards_for_session = [] # Reseta também
+        st.session_state.last_gemini_feedback_display_parsed = None
+        st.session_state.ordered_cards_for_session = []
+        st.session_state.difficult_cards_for_session = []
         st.rerun()
 
     # Define quais abas serão exibidas e cria as referências para os blocos 'with'
+    tab_options = []
     if st.session_state.logged_in_user == ADMIN_USERNAME:
-        tab_names_list = ["Todas as Perguntas", "Gerenciar Cartões", "Métricas de Desempenho", "Perguntas Mais Difíceis"]
-        tab1_comp, tab2_comp, tab3_comp, tab4_comp = st.tabs(tab_names_list)
+        tab_options = ["Todas as Perguntas", "Gerenciar Cartões", "Métricas de Desempenho", "Perguntas Mais Difíceis", "Gerenciar Usuários"]
     else:
-        tab_names_list = ["Todas as Perguntas", "Métricas de Desempenho", "Perguntas Mais Difíceis"]
-        tab1_comp, tab3_comp, tab4_comp = st.tabs(tab_names_list)
-        tab2_comp = None # Garante que tab2_comp não seja usado se o usuário não for admin
+        tab_options = ["Todas as Perguntas", "Gerenciar Cartões", "Métricas de Desempenho", "Perguntas Mais Difíceis"]
+
+    # st.sidebar.radio para controlar a aba ativa
+    selected_tab = st.sidebar.radio("Navegar entre Seções:", tab_options, key="main_tab_selector")
 
     # --- Funções de Renderização de Conteúdo por Aba ---
+    # As funções de renderização devem estar definidas DENTRO do 'else' do login,
+    # para que tenham acesso aos estados do usuário logado (st.session_state.logged_in_user)
+    # e para que não sejam redefinidas desnecessariamente.
+
     def render_tab_all_questions():
-        st.header("Modo de Prática: Todas as Perguntas") # NOVO NOME
+        st.header("Modo de Prática: Todas as Perguntas")
         
-        # current_practice_cards PARA ABA 1: baseada na ordem definida no login
         current_practice_cards_tab1 = st.session_state.ordered_cards_for_session 
         
-        # Seletores de Matéria e Assunto para Filtragem na Prática (aba 1)
         available_materias_tab1 = sorted(list(set([card["materia"] for card in current_practice_cards_tab1]))) if current_practice_cards_tab1 else []
         selected_materia_tab1 = st.selectbox("Filtrar por Matéria:", ["Todas"] + available_materias_tab1, key="filter_materia_tab1")
 
@@ -536,15 +478,10 @@ else: # Usuário logado
         if selected_assunto_tab1 != "Todos":
             filtered_cards_tab1 = [card for card in filtered_cards_tab1 if card["assunto"] == selected_assunto_tab1]
 
-        # AQUI FOI ONDE O 'else' ESTAVA DANDO ERRO. Ele estava no nível do 'if filtered_cards_tab1:'.
-        # Ao adicionar o 'return' no 'if not filtered_cards_tab1', o 'else' ficava "solto".
-        # A forma correta é que, se não houver cartões, a função simplesmente retorna.
-        # Caso contrário, o resto da função é executado.
         if not filtered_cards_tab1:
             st.info("Nenhum cartão encontrado com os filtros selecionados. Altere os filtros ou adicione novos cartões.")
-            return # Sai da função se não há cartões para exibir
+            return
 
-        # O restante do código da aba 1 (renderização do cartão, botões, feedback) segue aqui.
         if st.session_state.current_card_index >= len(filtered_cards_tab1):
             st.session_state.current_card_index = 0
 
@@ -557,7 +494,6 @@ else: # Usuário logado
                                     height=150,
                                     key=f"user_answer_input_tab1_{st.session_state.current_card_index}")
 
-        # Botão "Verificar Resposta com Gemini" (para aba 1)
         if st.button("Verificar Resposta com Gemini", key="check_response_btn_tab1"):
             if user_answer_tab1.strip():
                 with st.spinner("Analisando com Gemini..."):
@@ -588,7 +524,7 @@ else: # Usuário logado
                 })
                 salvar_historico_feedback(st.session_state.feedback_history, st.session_state.logged_in_user)
 
-                st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega para a atualização da lista de difíceis
+                st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) 
                 
                 difficult_cards_updated = []
                 last_scores_for_difficult = {}
@@ -597,7 +533,7 @@ else: # Usuário logado
                     if card_id_entry not in last_scores_for_difficult:
                         last_scores_for_difficult[card_id_entry] = entry.get("nota_sentido")
 
-                for card_item in st.session_state.global_cartoes:
+                for card_item in st.session_state.user_cartoes: 
                     card_id_item = (card_item["pergunta"], card_item["materia"], card_item["assunto"])
                     if card_id_item in last_scores_for_difficult and last_scores_for_difficult[card_id_item] is not None and last_scores_for_difficult[card_id_item] < 80:
                         difficult_cards_updated.append(card_item)
@@ -663,15 +599,10 @@ else: # Usuário logado
                 st.session_state.last_gemini_feedback_display_parsed = None
                 st.rerun()
 
-        # REMOVIDO: O bloco 'else' que estava causando o SyntaxError
-        # A mensagem de "Nenhum cartão carregado" já é tratada por 'if not filtered_cards_tab1: return'
 
     def render_tab_manage_cards():
         st.header("Gerenciar Cartões")
-        if st.session_state.logged_in_user != ADMIN_USERNAME:
-            st.warning("Você não tem permissão para gerenciar cartões.")
-            return # Sai da função se não for admin
-
+        
         st.subheader("Adicionar Novo Cartão")
         with st.form("add_card_form"): 
             nova_materia = st.text_input("Matéria:",
@@ -697,22 +628,48 @@ else: # Usuário logado
                         "pergunta": nova_pergunta.strip(),
                         "resposta_esperada": nova_resposta.strip()
                     }
-                    st.session_state.global_cartoes.append(new_card)
-                    salvar_cartoes_globais(st.session_state.global_cartoes) 
+                    st.session_state.user_cartoes.append(new_card)
+                    salvar_cartoes(st.session_state.user_cartoes, st.session_state.logged_in_user) 
                     
                     st.session_state.last_materia_input = nova_materia.strip()
                     st.session_state.last_assunto_input = nova_assunto.strip()
                     st.session_state.add_card_form_key_suffix += 1
                     
+                    # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS ADIÇÃO/EDIÇÃO/EXCLUSÃO ---
+                    st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
+                    st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
+                    
+                    # Recalcula ordered_cards_for_session
+                    card_latest_scores_recalc = {}
+                    for entry in reversed(st.session_state.feedback_history):
+                        card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
+                        if card_id not in card_latest_scores_recalc:
+                            card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
+                    cards_for_ordering_recalc = []
+                    for card in st.session_state.user_cartoes:
+                        card_id = (card["pergunta"], card["materia"], card["assunto"])
+                        score_to_order = card_latest_scores_recalc.get(card_id, -1)
+                        cards_for_ordering_recalc.append((card, score_to_order))
+                    st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted(cards_for_ordering_recalc, key=lambda x: x[1])]
+
+                    # Recalcula difficult_cards_for_session
+                    difficult_cards_updated_recalc = []
+                    for card in st.session_state.user_cartoes:
+                        card_id = (card["pergunta"], card["materia"], card["assunto"])
+                        if card_id in card_latest_scores_recalc and card_latest_scores_recalc[card_id] is not None and card_latest_scores_recalc[card_id] < 80:
+                            difficult_cards_updated_recalc.append(card)
+                    st.session_state.difficult_cards_for_session = difficult_cards_updated_recalc
+                    # --- FIM DA ATUALIZAÇÃO ---
+
                     st.rerun()
                 else:
                     st.warning("Por favor, preencha todos os campos para adicionar um cartão.")
 
         st.subheader("Cartões Existentes")
-        available_materias_manage = sorted(list(set([card["materia"] for card in st.session_state.global_cartoes]))) if st.session_state.global_cartoes else []
+        available_materias_manage = sorted(list(set([card["materia"] for card in st.session_state.user_cartoes]))) if st.session_state.user_cartoes else []
         selected_materia_manage = st.selectbox("Filtrar por Matéria:", ["Todas"] + available_materias_manage, key="filter_materia_manage")
 
-        displayed_cards = st.session_state.global_cartoes
+        displayed_cards = st.session_state.user_cartoes
         if selected_materia_manage != "Todas":
             displayed_cards = [card for card in displayed_cards if card["materia"] == selected_materia_manage]
         
@@ -722,16 +679,15 @@ else: # Usuário logado
         if selected_assunto_manage != "Todos":
             displayed_cards = [card for card in displayed_cards if card["assunto"] == selected_assunto_manage]
 
-        if not displayed_cards: # ATUALIZADO: Usando um IF para a mensagem
-            if st.session_state.global_cartoes:
+        if not displayed_cards: # Tratamento para caso sem cartões
+            if st.session_state.user_cartoes:
                 st.info("Nenhum cartão encontrado com os filtros selecionados. Altere os filtros.")
             else:
                 st.info("Nenhum cartão adicionado ainda. Use o formulário acima para criar seu primeiro cartão.")
-            return # Sai da função se não há cartões para exibir
+            return 
 
-        # O restante do código de exibição/edição/exclusão de cartões segue aqui
         for i, card in enumerate(displayed_cards):
-            original_index = st.session_state.global_cartoes.index(card)
+            original_index = st.session_state.user_cartoes.index(card) # ATUALIZADO: Usa user_cartoes para o índice
 
             with st.expander(f"Cartão {original_index+1} ({card['materia']} - {card['assunto']}): {card['pergunta'][:50]}..."):
                 st.write("**Matéria:**", card["materia"])
@@ -751,42 +707,96 @@ else: # Usuário logado
 
                 with col_delete:
                     if st.button(f"Excluir", key=f"delete_card_{original_index}"):
-                        st.session_state.global_cartoes.pop(original_index)
-                        salvar_cartoes_globais(st.session_state.global_cartoes)
-                        if st.session_state.current_card_index >= len(st.session_state.global_cartoes):
+                        st.session_state.user_cartoes.pop(original_index)
+                        salvar_cartoes(st.session_state.user_cartoes, st.session_state.logged_in_user)
+                        
+                        # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EXCLUSÃO ---
+                        st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
+                        st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
+                        
+                        # Recalcula ordered_cards_for_session
+                        card_latest_scores_recalc = {}
+                        for entry in reversed(st.session_state.feedback_history):
+                            card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
+                            if card_id not in card_latest_scores_recalc:
+                                card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
+                        cards_for_ordering_recalc = []
+                        for card in st.session_state.user_cartoes:
+                            card_id = (card["pergunta"], card["materia"], card["assunto"])
+                            score_to_order = card_latest_scores_recalc.get(card_id, -1)
+                            cards_for_ordering_recalc.append((card, score_to_order))
+                        st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted(cards_for_ordering_recalc, key=lambda x: x[1])]
+
+                        # Recalcula difficult_cards_for_session
+                        difficult_cards_updated_recalc = []
+                        for card in st.session_state.user_cartoes:
+                            card_id = (card["pergunta"], card["materia"], card["assunto"])
+                            if card_id in card_latest_scores_recalc and card_latest_scores_recalc[card_id] is not None and card_latest_scores_recalc[card_id] < 80:
+                                difficult_cards_updated_recalc.append(card)
+                        st.session_state.difficult_cards_for_session = difficult_cards_updated_recalc
+                        # --- FIM DA ATUALIZAÇÃO ---
+
+                        if st.session_state.current_card_index >= len(st.session_state.user_cartoes):
                             st.session_state.current_card_index = 0
                         st.rerun()
-            st.markdown("---")
+                st.markdown("---")
 
-        if 'edit_index' in st.session_state and st.session_state.edit_index is not None:
-            st.subheader(f"Editar Cartão {st.session_state.edit_index + 1}")
-            with st.form("edit_card_form"):
-                edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
-                edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
-                edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
-                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
-                col_save, col_cancel = st.columns(2)
-                with col_save:
-                    edited_submitted = st.form_submit_button("Salvar Edição")
-                with col_cancel:
-                    cancel_edit = st.form_submit_button("Cancelar Edição")
+            if 'edit_index' in st.session_state and st.session_state.edit_index is not None:
+                st.subheader(f"Editar Cartão {st.session_state.edit_index + 1}")
+                with st.form("edit_card_form"):
+                    edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
+                    edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
+                    edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
+                    edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
+                    col_save, col_cancel = st.columns(2)
+                    with col_save:
+                        edited_submitted = st.form_submit_button("Salvar Edição")
+                    with col_cancel:
+                        cancel_edit = st.form_submit_button("Cancelar Edição")
 
-                if edited_submitted:
-                    if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
-                        st.session_state.global_cartoes[st.session_state.edit_index] = {
-                            "materia": edited_materia.strip(),
-                            "assunto": edited_assunto.strip(),
-                            "pergunta": edited_pergunta.strip(),
-                            "resposta_esperada": edited_resposta.strip()
-                        }
-                        salvar_cartoes_globais(st.session_state.global_cartoes)
+                    if edited_submitted:
+                        if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
+                            st.session_state.user_cartoes[st.session_state.edit_index] = {
+                                "materia": edited_materia.strip(),
+                                "assunto": edited_assunto.strip(),
+                                "pergunta": edited_pergunta.strip(),
+                                "resposta_esperada": edited_resposta.strip()
+                            }
+                            salvar_cartoes(st.session_state.user_cartoes, st.session_state.logged_in_user)
+                            
+                            # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EDIÇÃO ---
+                            st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
+                            st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
+                            
+                            # Recalcula ordered_cards_for_session
+                            card_latest_scores_recalc = {}
+                            for entry in reversed(st.session_state.feedback_history):
+                                card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
+                                if card_id not in card_latest_scores_recalc:
+                                    card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
+                            cards_for_ordering_recalc = []
+                            for card in st.session_state.user_cartoes:
+                                card_id = (card["pergunta"], card["materia"], card["assunto"])
+                                score_to_order = card_latest_scores_recalc.get(card_id, -1)
+                                cards_for_ordering_recalc.append((card, score_to_order))
+                            st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted(cards_for_ordering_recalc, key=lambda x: x[1])]
+
+                            # Recalcula difficult_cards_for_session
+                            difficult_cards_updated_recalc = []
+                            for card in st.session_state.user_cartoes:
+                                card_id = (card["pergunta"], card["materia"], card["assunto"])
+                                if card_id in card_latest_scores_recalc and card_latest_scores_recalc[card_id] is not None and card_latest_scores_recalc[card_id] < 80:
+                                    difficult_cards_updated_recalc.append(card)
+                            st.session_state.difficult_cards_for_session = difficult_cards_updated_recalc
+                            # --- FIM DA ATUALIZAÇÃO ---
+
+                            st.session_state.edit_index = None
+                            st.rerun()
+                        else:
+                            st.warning("Por favor, preencha todos os campos para salvar a edição.")
+                    elif cancel_edit:
                         st.session_state.edit_index = None
                         st.rerun()
-                    else:
-                        st.warning("Por favor, preencha todos os campos para salvar a edição.")
-                elif cancel_edit: # Corrigido para 'elif'
-                    st.session_state.edit_index = None
-                    st.rerun()
 
 
     def render_tab_metrics():
@@ -806,11 +816,10 @@ else: # Usuário logado
         if selected_assunto_metrics != "Todos":
             filtered_history = [entry for entry in filtered_history if entry["assunto"] == selected_assunto_metrics]
 
-        if not filtered_history: # ATUALIZADO: Usando um IF para a mensagem
+        if not filtered_history:
             st.info("Nenhuma resposta foi avaliada com os filtros selecionados. Comece a praticar na aba 'Todas as Perguntas'!")
-            return # Sai da função se não há histórico para exibir
+            return 
             
-        # O restante do código de métricas segue aqui.
         st.subheader("Resumo dos Feedbacks:")
         
         total_pontuacao = 0
@@ -868,12 +877,10 @@ else: # Usuário logado
         if selected_assunto_difficult != "Todos":
             filtered_cards_difficult = [card for card in filtered_cards_difficult if card["assunto"] == selected_assunto_difficult]
 
-        # AQUI FOI ONDE O 'else' ESTAVA DANDO ERRO.
-        if not filtered_cards_difficult: # ATUALIZADO: Usando um IF para a mensagem
+        if not filtered_cards_difficult: # Tratamento para caso sem cartões
             st.info("Parabéns! Não há perguntas classificadas como 'difíceis' com os filtros selecionados, ou elas ainda não foram respondidas e pontuadas abaixo de 80%.")
             return # Sai da função se não há cartões para exibir
 
-        # O restante do código da aba Difíceis segue aqui.
         if st.session_state.current_card_index_difficult >= len(filtered_cards_difficult):
             st.session_state.current_card_index_difficult = 0 # Reseta se o índice for inválido
 
@@ -964,7 +971,7 @@ else: # Usuário logado
                     else:
                         st.info("Você está no primeiro cartão difícil.")
             with nav_col3_d:
-                if st.button("Próximo (Difíceis)", key="next_card_btn_difficult"):
+                if st.button("Próximo (Difícil)", key="next_card_btn_difficult"):
                     if st.session_state.current_card_index_difficult < len(filtered_cards_difficult) - 1:
                         st.session_state.current_card_index_difficult += 1
                         st.session_state.show_expected_answer = False
@@ -980,15 +987,86 @@ else: # Usuário logado
                     st.rerun()
 
 
+    def render_tab_manage_users(): # NOVA FUNÇÃO PARA GERENCIAR USUÁRIOS
+        st.header("Gerenciar Usuários")
+        if st.session_state.logged_in_user != ADMIN_USERNAME:
+            st.warning("Você não tem permissão para gerenciar usuários.")
+            return
+
+        users_data = carregar_usuarios()
+
+        st.subheader("Criar Nova Conta de Usuário")
+        with st.form("create_user_form"):
+            new_username = st.text_input("Nome de Usuário:", key="create_user_input")
+            new_password = st.text_input("Senha:", type="password", key="create_password_input")
+            confirm_new_password = st.text_input("Confirme a Senha:", type="password", key="create_confirm_password_input")
+            if st.form_submit_button("Criar Usuário"):
+                if new_username.strip() and new_password.strip() and new_password == confirm_new_password:
+                    if new_username.strip() == ADMIN_USERNAME:
+                        st.error(f"O nome de usuário '{ADMIN_USERNAME}' é reservado.")
+                    elif new_username.strip() in users_data:
+                        st.error(f"O nome de usuário '{new_username.strip()}' já existe.")
+                    else:
+                        users_data[new_username.strip()] = hash_password(new_password.strip())
+                        salvar_usuarios(users_data)
+                        st.success(f"Usuário '{new_username.strip()}' criado com sucesso!")
+                        st.rerun()
+                else:
+                    st.error("Preencha todos os campos, as senhas devem coincidir e não podem ser vazias.")
+
+        st.subheader("Alterar Senha ou Excluir Usuário Existente")
+        # Mostra a lista de usuários para gerenciar, excluindo o próprio admin
+        users_list_for_manage = [u for u in users_data.keys() if u != ADMIN_USERNAME]
+
+        if users_list_for_manage: # Só mostra o seletor se houver outros usuários
+            selected_user = st.selectbox("Selecione o Usuário:", users_list_for_manage, key="select_user_to_manage")
+            
+            if selected_user: # Garante que um usuário foi selecionado
+                st.write(f"Gerenciando usuário: **{selected_user}**")
+                
+                # Formulário para alterar senha
+                with st.form(f"change_password_form_{selected_user}"):
+                    new_pass_change = st.text_input("Nova Senha:", type="password", key=f"new_pass_change_{selected_user}")
+                    confirm_pass_change = st.text_input("Confirme Nova Senha:", type="password", key=f"confirm_pass_change_{selected_user}")
+                    if st.form_submit_button("Alterar Senha"):
+                        if new_pass_change.strip() and new_pass_change == confirm_pass_change:
+                            users_data[selected_user] = hash_password(new_pass_change.strip())
+                            salvar_usuarios(users_data)
+                            st.success(f"Senha do usuário '{selected_user}' alterada com sucesso!")
+                            st.rerun()
+                        else:
+                            st.error("As senhas não coincidem ou estão vazias.")
+                
+                # Botão para excluir usuário
+                if st.button(f"Excluir Usuário '{selected_user}'", key=f"delete_user_btn_{selected_user}", type="secondary"):
+                    # Pedido de confirmação para exclusão
+                    if st.warning(f"Tem certeza que deseja excluir o usuário '{selected_user}'? Essa ação é irreversível e excluirá todos os seus cartões e histórico!", icon="⚠️"):
+                        confirm_delete = st.button("Confirmar Exclusão (irreversível)", key=f"confirm_delete_user_{selected_user}")
+                        if confirm_delete:
+                            del users_data[selected_user]
+                            salvar_usuarios(users_data)
+                            
+                            # Excluir a pasta de dados do usuário
+                            user_data_path_to_delete = get_user_data_path(selected_user)
+                            if os.path.exists(user_data_path_to_delete):
+                                import shutil
+                                shutil.rmtree(user_data_path_to_delete) # Remove a pasta e todo o seu conteúdo
+                            
+                            st.success(f"Usuário '{selected_user}' excluído com sucesso.")
+                            st.rerun()
+        else:
+            st.info("Nenhum usuário registrado além do administrador.")
+
+
     # --- Lógica de Renderização das Abas (Chamadas de Função) ---
-    # As funções de renderização são chamadas dentro dos blocos 'with' dos st.tabs().
-    with tab1_comp:
+    # selected_tab é obtido do st.sidebar.radio
+    if selected_tab == "Todas as Perguntas":
         render_tab_all_questions()
-    if tab2_comp: # Apenas se o admin estiver logado
-        with tab2_comp:
-            render_tab_manage_cards()
-    with tab3_comp:
+    elif selected_tab == "Gerenciar Cartões":
+        render_tab_manage_cards()
+    elif selected_tab == "Métricas de Desempenho":
         render_tab_metrics()
-    if tab4_comp: # Apenas se a aba existir (visível para não-admin também)
-        with tab4_comp:
-            render_tab_difficult_questions()
+    elif selected_tab == "Perguntas Mais Difíceis":
+        render_tab_difficult_questions()
+    elif selected_tab == "Gerenciar Usuários" and st.session_state.logged_in_user == ADMIN_USERNAME:
+        render_tab_manage_users()
