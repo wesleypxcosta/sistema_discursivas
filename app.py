@@ -429,7 +429,8 @@ if st.session_state.logged_in_user is None:
     pass 
     
 else: # Usuário logado
-    st.title(f"Sistema de Treino para Provas Discursivas de {st.session_state.logged_in_user}")
+    st.title(f"Sistema de Treino para Provas Discursivas")
+    st.write("**Você está logado(a) como:**", st.session_state.logged_in_user)
     st.write("Bem-vindo! Este é o seu sistema de flashcards inteligente com feedback do Gemini!")
 
     # Botão de Logout
