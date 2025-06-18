@@ -4,7 +4,7 @@ import google.generativeai as genai
 import streamlit as st
 import datetime
 import re
-import hashlib # Importa para hashing de senhas
+import hashlib
 
 # --- ESTILIZAÇÃO CUSTOMIZADA DA INTERFACE (CSS INJETADO) ---
 st.markdown(
@@ -18,7 +18,7 @@ st.markdown(
 
     /* Ajusta o tamanho da fonte para todos os textos principais */
     p, div, span, label, h1, h2, h3, h4, h5, h6 {
-        font-size: 1em; /* 1.1 vezes o tamanho padrão */
+        font-size: 1em; /* 1 vez o tamanho padrão */
         line-height: 1.6; /* Espaçamento entre linhas */
     }
 
@@ -221,7 +221,7 @@ def inicializar_admin_existencia():
 
 
 # --- Função de Interação com o Gemini ---
-def comparar_respostas_com_gemini(resposta_usuario, resposta_esperada):
+def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada): # <-- ADICIONADO 'pergunta' AQUI
     """
     Envia a resposta do usuário e a resposta esperada para o Gemini
     e pede para ele comparar o sentido, apontar erros gramaticais/grafia,
@@ -231,28 +231,36 @@ def comparar_respostas_com_gemini(resposta_usuario, resposta_esperada):
     if not resposta_usuario.strip() or not resposta_esperada.strip():
         return "Por favor, forneça ambas as respostas para comparação."
 
+    # PROMPT ATUALIZADO para considerar a PERGUNTA ao avaliar lacunas e sentido
     prompt = f"""
-    Sua tarefa é fornecer um feedback **sucinto e objetivo** para a 'Resposta do Usuário' em comparação com la 'Resposta Esperada'.
-    A ideia é que o usuário ganhe agilidade no aprendizado, focando nos puntos esenciales.
+    Sua tarefa é fornecer um feedback **sucinto e objetivo** para a 'Resposta do Usuário' em relação à 'Resposta Esperada' e, crucialmente, em relação à **Pergunta** feita.
+    A ideia é que o usuário ganhe agilidade no aprendizado, focando nos pontos essenciais **relevantes para a Pergunta**.
 
-    O feedback deve ser dividido en seções claras, sem rodeios.
+    Ao avaliar, desconsidere detalhes da 'Resposta Esperada' (como número de artigo, formatação, ordem exata de enumeração, ou informações contextuais que a Pergunta NÃO solicitou explicitamente).
+    Foque se a 'Resposta do Usuário' aborda os pontos essenciais que a **Pergunta** exigia, conforme os critérios contidos na 'Resposta Esperada'.
+
+    O feedback deve ser dividido em seções claras, sem rodeios.
 
     **Estrutura de Feedback Requerida:**
 
     **1. Pontuação de Sentido (0-100):**
-    [Uma pontuação numérica de 0 a 100% baseada na similaridade de sentido com la Resposta Esperada. 100% = sentido idêntico e completo.]
+    [Uma pontuação numérica de 0 a 100% baseada na similaridade de sentido com a Resposta Esperada, **considerando a relevância para a Pergunta**. 100% = sentido idêntico e completo **para a Pergunta**.]
 
     **2. Avaliação Principal do Sentido:**
-    [Feedback qualitativo muito breve (ex: "Excelente.", "Bom, mas faltou X.", "Incompleto.", "Incorreto.").]
+    [Feedback qualitativo muito breve (ex: "Excelente.", "Bom, mas faltou X.", "Incompleto.", "Incorreto."). Baseado na relevância para a Pergunta.]
 
     **3. Lacunas de Conteúdo:**
-    [Liste os puntos clave de la Resposta Esperada que NÃO foram abordados ou foram abordados de forma insuficiente na Resposta do Usuário. Use bullet points sucintos. Se não houver lacunas, diga "Nenhuma lacuna significativa."]
+    [Liste os pontos chave da Resposta Esperada que NÃO foram abordados ou foram abordados de forma insuficiente na Resposta do Usuário **E que são relevantes para a Pergunta**. Use bullet points sucintos. Se não houver lacunas, diga "Nenhuma lacuna significativa."]
 
     **4. Erros Gramaticais/Ortográficos:**
     [Liste os principais erros encontrados na 'Resposta do Usuário'. Formato: 'Palavra/Frase Incorreta' -> 'Sugestão de Correção'. Se não houver, diga "Nenhum erro encontrado."]
 
     **5. Sugestões Rápidas de Melhoria:**
-    [Sugestões muito concisas para aprimorar la resposta em termos de clareza, concisão e correção, baseadas nos erros e lacunas. Use bullet points.]
+    [Sugestões muito concisas para aprimorar a resposta em termos de clareza, concisão e correção, baseadas nos erros e lacunas. Use bullet points.]
+
+    ---
+    Pergunta:
+    {pergunta}
 
     ---
     Resposta Esperada:
@@ -429,8 +437,7 @@ if st.session_state.logged_in_user is None:
     pass 
     
 else: # Usuário logado
-    st.title(f"Sistema de Treino para Provas Discursivas")
-    st.write("**Você está logado(a) como:**", st.session_state.logged_in_user)
+    st.title(f"Sistema de Treino para Provas Discursivas de {st.session_state.logged_in_user}")
     st.write("Bem-vindo! Este é o seu sistema de flashcards inteligente com feedback do Gemini!")
 
     # Botão de Logout
@@ -498,7 +505,8 @@ else: # Usuário logado
         if st.button("Verificar Resposta com Gemini", key="check_response_btn_tab1"):
             if user_answer_tab1.strip():
                 with st.spinner("Analisando com Gemini..."):
-                    full_feedback_text_tab1 = comparar_respostas_com_gemini(user_answer_tab1, current_card_tab1["resposta_esperada"])
+                    # Passa a pergunta também para o Gemini
+                    full_feedback_text_tab1 = comparar_respostas_com_gemini(current_card_tab1["pergunta"], user_answer_tab1, current_card_tab1["resposta_esperada"]) 
                     parsed_feedback_tab1 = parse_feedback_sections(full_feedback_text_tab1)
                     
                     st.session_state.last_gemini_feedback_display_parsed = parsed_feedback_tab1
@@ -897,7 +905,8 @@ else: # Usuário logado
         if st.button("Verificar Resposta com Gemini (Difíceis)", key="check_response_btn_difficult"):
             if user_answer_difficult.strip():
                 with st.spinner("Analisando com Gemini..."):
-                    full_feedback_text_difficult = comparar_respostas_com_gemini(user_answer_difficult, current_card_difficult["resposta_esperada"])
+                    # Passa a pergunta também para o Gemini
+                    full_feedback_text_difficult = comparar_respostas_com_gemini(current_card_difficult["pergunta"], user_answer_difficult, current_card_difficult["resposta_esperada"]) 
                     parsed_feedback_difficult = parse_feedback_sections(full_feedback_text_difficult)
                     
                     st.session_state.last_gemini_feedback_display_parsed = parsed_feedback_difficult # Usa o mesmo para exibir
@@ -920,7 +929,7 @@ else: # Usuário logado
                     "pergunta": current_card_difficult["pergunta"],
                     "nota_sentido": stored_score_difficult,
                     "lacunas_conteudo": lacunas_stored_difficult,
-                    "timestamp": datetime.datetime.now().isoformat()
+                    "timestamp": datetime.datetime.own().isoformat() # Erro de digitação aqui: .own()
                 })
                 salvar_historico_feedback(st.session_state.feedback_history, st.session_state.logged_in_user)
 
