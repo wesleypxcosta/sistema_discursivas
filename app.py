@@ -465,7 +465,7 @@ if not inicializar_admin_existencia():
 
 # Se o usuário não estiver logado, exibe a tela de login
 if st.session_state.logged_in_user is None:
-    st.title("Bem-vindo(a) ao Sistema de Treino!")
+    st.title("Bem-vindo ao Sistema de Treino!")
     st.subheader("Por favor, faça login para continuar:")
 
     username_login = st.text_input("Nome de Usuário:", key="username_login_input_form")
@@ -524,7 +524,7 @@ if st.session_state.logged_in_user is None:
     
 else: # Usuário logado
     st.title("Sistema de Treino para Provas Discursivas")
-    st.write(f"Bem-vindo(a), **{st.session_state.logged_in_user}**! Este é o seu sistema de flashcards inteligente com feedback do Gemini!")
+    st.write(f"Bem-vindo, **{st.session_state.logged_in_user}**! Este é o seu sistema de flashcards inteligente com feedback do Gemini!")
 
     # Botão de Logout
     if st.sidebar.button("Sair", key="logout_button"):
