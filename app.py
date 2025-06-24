@@ -5,8 +5,8 @@ import streamlit as st
 import datetime
 import re
 import hashlib
-import firebase_admin # <-- NOVO
-from firebase_admin import credentials, firestore # <-- NOVO
+import firebase_admin 
+from firebase_admin import credentials, firestore
 
 # --- ESTILIZAÇÃO CUSTOMIZADA DA INTERFACE (CSS INJETADO) ---
 st.markdown(
@@ -107,41 +107,43 @@ genai.configure(api_key=GOOGLE_API_KEY)
 model = genai.GenerativeModel('models/gemini-2.5-flash-preview-05-20')
 
 # --- CONFIGURAÇÃO DO FIRESTORE ---
-# Caminho para o arquivo JSON da sua chave de serviço do Google Cloud
-SERVICE_ACCOUNT_KEY_PATH = "gcp_service_account_key.json"
+# Caminho para o arquivo JSON da sua chave de serviço do Google Cloud para TESTE LOCAL
+SERVICE_ACCOUNT_KEY_PATH_LOCAL = "gcp_service_account_key.json"
 
 # Nomes das Coleções no Firestore
-USERS_COLLECTION = "users" # Para armazenar usuários e senhas
-CARDS_COLLECTION = "user_cards" # Para armazenar cartões de cada usuário (subcoleção)
-FEEDBACK_COLLECTION = "feedback_history" # Para armazenar histórico de feedback de cada usuário (subcoleção)
+USERS_COLLECTION = "users"
+CARDS_COLLECTION = "user_cards"
+FEEDBACK_COLLECTION = "feedback_history"
 
 # Tenta inicializar o Firebase Admin SDK
 if not firebase_admin._apps: # Verifica se a aplicação Firebase já foi inicializada
     try:
-        # Prioriza carregar do Streamlit Secrets (ambiente de deploy na nuvem)
+        # TENTA CARREGAR DE STREAMLIT SECRETS PRIMEIRO (para deploy na nuvem)
         if "FIRESTORE_CREDENTIALS_JSON" in st.secrets and "GOOGLE_CLOUD_PROJECT_ID" in st.secrets:
             # Carrega o conteúdo JSON das credenciais e o ID do projeto dos secrets
             cred_info_json = json.loads(st.secrets["FIRESTORE_CREDENTIALS_JSON"])
-            project_id = st.secrets["GOOGLE_CLOUD_PROJECT_ID"]
+            project_id_from_secrets = st.secrets["GOOGLE_CLOUD_PROJECT_ID"]
             
             cred = credentials.Certificate(cred_info_json)
-            firebase_admin.initialize_app(cred, {'projectId': project_id}) # <-- ATUALIZADO AQUI
-            
-        # Se não está em Streamlit Secrets, tenta carregar do arquivo local (para desenvolvimento local)
-        elif os.path.exists(SERVICE_ACCOUNT_KEY_PATH):
-            cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
-            # Ao carregar do arquivo, o project_id já vem dentro das credenciais
-            firebase_admin.initialize_app(cred) # <-- ATUALIZADO AQUI (só cred, o project_id já está no JSON)
+            # Inicializa com as credenciais e o project_id
+            firebase_admin.initialize_app(cred, {'projectId': project_id_from_secrets})
+            st.success("Firebase inicializado via Streamlit Secrets!")
+        
+        # SE NÃO ESTÁ EM STREAMLIT SECRETS, TENTA CARREGAR DO ARQUIVO LOCAL (para desenvolvimento local)
+        elif os.path.exists(SERVICE_ACCOUNT_KEY_PATH_LOCAL):
+            cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH_LOCAL)
+            # Ao carregar do arquivo, o project_id já está contido nas credenciais JSON
+            firebase_admin.initialize_app(cred)
+            st.success(f"Firebase inicializado via arquivo local: {SERVICE_ACCOUNT_KEY_PATH_LOCAL}")
+        
+        # SE NENHUM DOS ANTERIORES, TENTA INICIALIZAÇÃO PADRÃO (ex: para deploy em Google Cloud Run/App Engine)
         else:
-            # Caso não encontre arquivo local e não esteja nos secrets (ex: GCP nativo sem setup manual de secrets)
-            # Tenta inicialização padrão (que requer GOOGLE_CLOUD_PROJECT env var ou credenciais Default)
-            # Para Streamlit Cloud, esse caso causou o erro. Por isso, a prioridade acima.
-            st.error("Erro: Credenciais do Firebase Firestore não encontradas. Configure 'FIRESTORE_CREDENTIALS_JSON' e 'GOOGLE_CLOUD_PROJECT_ID' nos Streamlit Secrets ou garanta que 'gcp_service_account_key.json' existe localmente.")
-            st.stop()
+            firebase_admin.initialize_app()
+            st.success("Firebase inicializado via credenciais padrão do Google Cloud.")
             
     except Exception as e:
-        st.error(f"Erro ao inicializar Firebase: {e}")
-        st.stop()
+        st.error(f"Erro CRÍTICO ao inicializar Firebase: {e}. Verifique as credenciais e o Project ID.")
+        st.stop() # Interrompe a execução se não conseguir conectar ao Firebase
 
 db = firestore.client() # Inicializa o cliente Firestore
 
@@ -171,7 +173,7 @@ def get_feedback_history_file_path(username):
     return os.path.join(get_user_data_path(username), FEEDBACK_HISTORY_FILENAME)
 
 # --- Funções de Manipulação de Cartões (AGORA NO FIRESTORE, POR USUÁRIO) ---
-def carregar_cartoes(username):
+def carregar_cartoes(username): # AGORA CARREGA CARTÕES DO USUÁRIO
     """
     Carrega as perguntas e respostas esperadas do Firestore para um usuário específico.
     """
@@ -189,7 +191,7 @@ def carregar_cartoes(username):
         st.error(f"Erro ao carregar cartões de '{username}' do Firestore: {e}")
         return []
 
-def salvar_cartoes(cartoes_data, username):
+def salvar_cartoes(cartoes_data, username): # AGORA SALVA CARTÕES DO USUÁRIO
     """
     Salva a lista completa de cartões no Firestore para um usuário específico.
     Isso irá *substituir* a coleção 'user_cards' do usuário no Firestore pela lista atual.
@@ -225,8 +227,7 @@ def carregar_historico_feedback(username):
     """
     historico = []
     try:
-        # Acessa a subcoleção 'feedback_history' dentro do documento do usuário
-        # Ordena por timestamp para garantir a ordem correta
+        # Acessa a subcoleção 'feedback_history' dentro do documento do usuário, ordenada por timestamp
         docs = db.collection(USERS_COLLECTION).document(username).collection(FEEDBACK_COLLECTION).order_by('timestamp').stream()
         for doc in docs:
             historico.append(doc.to_dict())
@@ -247,8 +248,6 @@ def salvar_historico_feedback(historico_data, username):
         if historico_data: # Se há algo no histórico para salvar/atualizar
             # Para evitar duplicatas e ser mais eficiente, a gente só adiciona a última entrada,
             # assumindo que ela é a "nova" que acabou de ser adicionada ao st.session_state.
-            # Se você quisesse um "sync" completo, teria que comparar com o que já está no BD.
-            # Para simplificar aqui, vamos adicionar um novo documento.
             last_entry = historico_data[-1] # Pega a última entrada adicionada ao histórico em memória
             user_feedback_ref.add(last_entry) # Adiciona como um novo documento no Firestore
         else: # Se a lista de histórico na sessão está vazia, significa que o usuário limpou.
@@ -302,8 +301,7 @@ def inicializar_admin_existencia():
 
 
 # --- Função de Interação com o Gemini ---
-# (permanece inalterada, já recebe 'pergunta')
-def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada): 
+def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada):
     """
     Envia a resposta do usuário e a resposta esperada para o Gemini
     e pede para ele comparar o sentido, apontar erros gramaticais/grafia,
@@ -1150,7 +1148,6 @@ else: # Usuário logado
 
     # --- Lógica de Renderização das Abas (Chamadas de Função) ---
     # selected_tab é obtido do st.sidebar.radio. Apenas a aba selecionada é renderizada.
-    # Os blocos with st.tabs() foram removidos daqui, pois o st.radio já faz o controle.
     if selected_tab == "Todas as Perguntas":
         render_tab_all_questions()
     elif selected_tab == "Gerenciar Cartões":
