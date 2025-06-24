@@ -110,17 +110,32 @@ model = genai.GenerativeModel('models/gemini-2.5-flash-preview-05-20')
 # Caminho para o arquivo JSON da sua chave de serviço do Google Cloud
 SERVICE_ACCOUNT_KEY_PATH = "gcp_service_account_key.json"
 
-if not firebase_admin._apps:
+# Tenta inicializar o Firebase Admin SDK
+if not firebase_admin._apps: # Verifica se a aplicação Firebase já foi inicializada
     try:
-        # Tenta usar o arquivo de credenciais localmente
-        if os.path.exists(SERVICE_ACCOUNT_KEY_PATH):
+        # Prioriza carregar do Streamlit Secrets (ambiente de deploy na nuvem)
+        if "FIRESTORE_CREDENTIALS_JSON" in st.secrets and "GOOGLE_CLOUD_PROJECT_ID" in st.secrets:
+            # Carrega o conteúdo JSON das credenciais e o ID do projeto dos secrets
+            cred_info_json = json.loads(st.secrets["FIRESTORE_CREDENTIALS_JSON"])
+            project_id = st.secrets["GOOGLE_CLOUD_PROJECT_ID"]
+            
+            cred = credentials.Certificate(cred_info_json)
+            firebase_admin.initialize_app(cred, {'projectId': project_id}) # <-- ATUALIZADO AQUI
+            
+        # Se não está em Streamlit Secrets, tenta carregar do arquivo local (para desenvolvimento local)
+        elif os.path.exists(SERVICE_ACCOUNT_KEY_PATH):
             cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH)
-            firebase_admin.initialize_app(cred)
-        # Se não encontra o arquivo local, tenta credenciais default (para deploy no GCP)
+            # Ao carregar do arquivo, o project_id já vem dentro das credenciais
+            firebase_admin.initialize_app(cred) # <-- ATUALIZADO AQUI (só cred, o project_id já está no JSON)
         else:
-            firebase_admin.initialize_app()
+            # Caso não encontre arquivo local e não esteja nos secrets (ex: GCP nativo sem setup manual de secrets)
+            # Tenta inicialização padrão (que requer GOOGLE_CLOUD_PROJECT env var ou credenciais Default)
+            # Para Streamlit Cloud, esse caso causou o erro. Por isso, a prioridade acima.
+            st.error("Erro: Credenciais do Firebase Firestore não encontradas. Configure 'FIRESTORE_CREDENTIALS_JSON' e 'GOOGLE_CLOUD_PROJECT_ID' nos Streamlit Secrets ou garanta que 'gcp_service_account_key.json' existe localmente.")
+            st.stop()
+            
     except Exception as e:
-        st.error(f"Erro ao inicializar Firebase: Verifique seu arquivo de credenciais '{SERVICE_ACCOUNT_KEY_PATH}' ou as variáveis de ambiente no deploy. Erro: {e}")
+        st.error(f"Erro ao inicializar Firebase: {e}")
         st.stop()
 
 db = firestore.client() # Inicializa o cliente Firestore
