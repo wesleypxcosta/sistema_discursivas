@@ -110,11 +110,6 @@ model = genai.GenerativeModel('models/gemini-2.5-flash-preview-05-20')
 # Caminho para o arquivo JSON da sua chave de serviço do Google Cloud para TESTE LOCAL
 SERVICE_ACCOUNT_KEY_PATH_LOCAL = "gcp_service_account_key.json"
 
-# Nomes das Coleções no Firestore
-USERS_COLLECTION = "users"
-CARDS_COLLECTION = "user_cards"
-FEEDBACK_COLLECTION = "feedback_history"
-
 # Tenta inicializar o Firebase Admin SDK
 if not firebase_admin._apps: # Verifica se a aplicação Firebase já foi inicializada
     try:
@@ -147,87 +142,100 @@ if not firebase_admin._apps: # Verifica se a aplicação Firebase já foi inicia
 
 db = firestore.client() # Inicializa o cliente Firestore
 
+# Nomes das Coleções no Firestore
+USERS_COLLECTION = "users"
+CARDS_COLLECTION = "user_cards" # Para armazenar cartões de cada usuário (subcoleção)
+FEEDBACK_COLLECTION = "feedback_history" # Para armazenar histórico de feedback de cada usuário (subcoleção)
+
 # --- Constantes para Nomes de Arquivo e Diretório Base (para compatibilidade/local) ---
 BASE_DATA_DIR = "data"
-CARDS_FILENAME = "cards.json"
-FEEDBACK_HISTORY_FILENAME = "feedback_history.json"
-USERS_FILE = os.path.join(BASE_DATA_DIR, "users.json") # Apenas para o inicializar_admin_existencia, users.json agora é gerenciado pelo Firestore.
+CARDS_FILENAME = "cards.json" # nome do arquivo de cartões dentro da pasta do usuário (localmente, se ainda usado)
+FEEDBACK_HISTORY_FILENAME = "feedback_history.json" # (localmente, se ainda usado)
+USERS_FILE = os.path.join(BASE_DATA_DIR, "users.json") # (localmente, para inicializar_admin_existencia)
 
 # --- DEFINIÇÃO DO ADMINISTRADOR ---
 ADMIN_USERNAME = "admin"
 
 # --- Funções Auxiliares para Caminhos de Arquivo por Usuário (e Global, se ainda usado localmente) ---
+# Essas funções ainda são usadas para o cenário local (users.json para admin inicial)
+# e para a estrutura de pastas dos arquivos JSON de histórico (get_user_data_path)
 def get_user_data_path(username):
-    """Retorna o caminho do diretório de dados para um usuário específico.
-    Isso é usado para pastas de feedback_history e cards_json locais (para compatibilidade
-    se um dia for preciso ler dados antigos, ou para o admin se quiser navegar localmente).
-    No Firestore, a estrutura é de coleções/documentos."""
     user_dir = os.path.join(BASE_DATA_DIR, username)
     os.makedirs(user_dir, exist_ok=True)
     return user_dir
 
-def get_cards_file_path(username):
+def get_cards_file_path(username): # Ainda presente, mas não mais a fonte de dados primária
     return os.path.join(get_user_data_path(username), CARDS_FILENAME)
 
 def get_feedback_history_file_path(username):
     return os.path.join(get_user_data_path(username), FEEDBACK_HISTORY_FILENAME)
 
-# --- Funções de Manipulação de Cartões (AGORA NO FIRESTORE, POR USUÁRIO) ---
-def carregar_cartoes(username): # AGORA CARREGA CARTÕES DO USUÁRIO
+# --- FUNÇÕES DE MANIPULAÇÃO DE CARTÕES (OTIMIZADAS PARA FIRESTORE) ---
+
+def carregar_cartoes(username):
     """
-    Carrega as perguntas e respostas esperadas do Firestore para um usuário específico.
+    Carrega os cartões do Firestore para um usuário específico,
+    incluindo o ID do documento do Firestore.
     """
     cartoes = []
     try:
-        # Acessa a subcoleção 'user_cards' dentro do documento do usuário
-        # O ID do documento do usuário é o próprio username
         docs = db.collection(USERS_COLLECTION).document(username).collection(CARDS_COLLECTION).stream()
         for doc in docs:
             card_data = doc.to_dict()
-            card_data['doc_id'] = doc.id # Guarda o ID do documento do Firestore para updates/deletes
+            card_data['doc_id'] = doc.id # **CRUCIAL**: Salva o ID do documento
             cartoes.append(card_data)
         return cartoes
     except Exception as e:
         st.error(f"Erro ao carregar cartões de '{username}' do Firestore: {e}")
         return []
 
-def salvar_cartoes(cartoes_data, username): # AGORA SALVA CARTÕES DO USUÁRIO
-    """
-    Salva a lista completa de cartões no Firestore para um usuário específico.
-    Isso irá *substituir* a coleção 'user_cards' do usuário no Firestore pela lista atual.
-    Atenção: Para apps com muitos cartões e operações frequentes,
-    seria mais eficiente gerenciar adições/edições/exclusões individualmente.
-    Aqui, para simplificar a sincronização, limpamos e reescrevemos.
-    """
+def adicionar_cartao_firestore(card_data, username): # NOVA FUNÇÃO
+    """Adiciona um único cartão ao Firestore e retorna o doc_id."""
     try:
-        user_cards_ref = db.collection(USERS_COLLECTION).document(username).collection(CARDS_COLLECTION)
-
-        # 1. Deleta todos os documentos existentes na subcoleção do usuário
-        current_docs_refs = user_cards_ref.stream()
-        for doc_ref in current_docs_refs:
-            doc_ref.reference.delete()
-
-        # 2. Adiciona os cartões da lista fornecida como novos documentos
-        for card in cartoes_data:
-            # Remove 'doc_id' se ele existe para não salvá-lo no Firestore como um campo de dado
-            card_to_save = card.copy()
-            if 'doc_id' in card_to_save:
-                del card_to_save['doc_id']
-            user_cards_ref.add(card_to_save) # add() cria um documento com ID automático
+        # Remove 'doc_id' se ele existe (não queremos salvá-lo como um campo de dado)
+        card_to_add = card_data.copy()
+        if 'doc_id' in card_to_add:
+            del card_to_add['doc_id']
         
-        st.success(f"Cartões de '{username}' salvos no Firestore com sucesso!")
+        doc_ref = db.collection(USERS_COLLECTION).document(username).collection(CARDS_COLLECTION).add(card_to_add)
+        st.success(f"Cartão adicionado com ID: {doc_ref[1].id}")
+        return doc_ref[1].id # Retorna o ID do documento criado
     except Exception as e:
-        st.error(f"Erro ao salvar cartões de '{username}' no Firestore: {e}")
+        st.error(f"Erro ao adicionar cartão no Firestore: {e}")
+        return None
+
+def atualizar_cartao_firestore(doc_id, card_data, username): # NOVA FUNÇÃO
+    """Atualiza um cartão existente no Firestore pelo seu doc_id."""
+    try:
+        card_to_update = card_data.copy()
+        if 'doc_id' in card_to_update: # Não precisamos do doc_id no próprio documento
+            del card_to_update['doc_id']
+        
+        db.collection(USERS_COLLECTION).document(username).collection(CARDS_COLLECTION).document(doc_id).update(card_to_update)
+        st.success(f"Cartão com ID {doc_id} atualizado no Firestore.")
+        return True
+    except Exception as e:
+        st.error(f"Erro ao atualizar cartão com ID {doc_id} no Firestore: {e}")
+        return False
+
+def excluir_cartao_firestore(doc_id, username): # NOVA FUNÇÃO
+    """Exclui um cartão específico do Firestore pelo seu doc_id."""
+    try:
+        db.collection(USERS_COLLECTION).document(username).collection(CARDS_COLLECTION).document(doc_id).delete()
+        st.success(f"Cartão com ID {doc_id} excluído do Firestore.")
+        return True
+    except Exception as e:
+        st.error(f"Erro ao excluir cartão com ID {doc_id} do Firestore: {e}")
+        return False
 
 
-# Funções de histórico de feedback (AGORA NO FIRESTORE, POR USUÁRIO)
+# Funções de histórico de feedback (JÁ ESTAVAM OTIMIZADAS PARA ADD)
 def carregar_historico_feedback(username):
     """
     Carrega o histórico de feedback do Firestore para um usuário específico.
     """
     historico = []
     try:
-        # Acessa a subcoleção 'feedback_history' dentro do documento do usuário, ordenada por timestamp
         docs = db.collection(USERS_COLLECTION).document(username).collection(FEEDBACK_COLLECTION).order_by('timestamp').stream()
         for doc in docs:
             historico.append(doc.to_dict())
@@ -246,8 +254,6 @@ def salvar_historico_feedback(historico_data, username):
         user_feedback_ref = db.collection(USERS_COLLECTION).document(username).collection(FEEDBACK_COLLECTION)
         
         if historico_data: # Se há algo no histórico para salvar/atualizar
-            # Para evitar duplicatas e ser mais eficiente, a gente só adiciona a última entrada,
-            # assumindo que ela é a "nova" que acabou de ser adicionada ao st.session_state.
             last_entry = historico_data[-1] # Pega a última entrada adicionada ao histórico em memória
             user_feedback_ref.add(last_entry) # Adiciona como um novo documento no Firestore
         else: # Se a lista de histórico na sessão está vazia, significa que o usuário limpou.
@@ -301,7 +307,8 @@ def inicializar_admin_existencia():
 
 
 # --- Função de Interação com o Gemini ---
-def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada):
+# (permanece inalterada, já recebe 'pergunta')
+def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada): 
     """
     Envia a resposta do usuário e a resposta esperada para o Gemini
     e pede para ele comparar o sentido, apontar erros gramaticais/grafia,
@@ -709,46 +716,49 @@ else: # Usuário logado
             submitted = st.form_submit_button("Adicionar Cartão")
             if submitted:
                 if nova_materia.strip() and nova_assunto.strip() and nova_pergunta.strip() and nova_resposta.strip():
-                    new_card = {
+                    new_card_data = { # Dados do novo cartão sem doc_id ainda
                         "materia": nova_materia.strip(),
                         "assunto": nova_assunto.strip(),
                         "pergunta": nova_pergunta.strip(),
                         "resposta_esperada": nova_resposta.strip()
                     }
-                    st.session_state.user_cartoes.append(new_card)
-                    salvar_cartoes(st.session_state.user_cartoes, st.session_state.logged_in_user) 
+                    # Adiciona o cartão ao Firestore e pega o doc_id gerado
+                    new_doc_id = adicionar_cartao_firestore(new_card_data, st.session_state.logged_in_user)
                     
-                    st.session_state.last_materia_input = nova_materia.strip()
-                    st.session_state.last_assunto_input = nova_assunto.strip()
-                    st.session_state.add_card_form_key_suffix += 1
-                    
-                    # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS ADIÇÃO/EDIÇÃO/EXCLUSÃO ---
-                    st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
-                    st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
-                    
-                    # Recalcula ordered_cards_for_session
-                    card_latest_scores_recalc = {}
-                    for entry in reversed(st.session_state.feedback_history):
-                        card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
-                        if card_id not in card_latest_scores_recalc:
-                            card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
-                    cards_for_ordering_recalc = []
-                    for card in st.session_state.user_cartoes:
-                        card_id = (card["pergunta"], card["materia"], card["assunto"])
-                        score_to_order = card_latest_scores_recalc.get(card_id, -1)
-                        cards_for_ordering_recalc.append((card, score_to_order))
-                    st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted(cards_for_ordering_recalc, key=lambda x: x[1])]
+                    if new_doc_id: # Se o cartão foi adicionado com sucesso
+                        new_card_data['doc_id'] = new_doc_id # Adiciona o doc_id à cópia em memória
+                        st.session_state.user_cartoes.append(new_card_data) # Adiciona à lista em memória
+                        
+                        st.session_state.last_materia_input = nova_materia.strip()
+                        st.session_state.last_assunto_input = nova_assunto.strip()
+                        st.session_state.add_card_form_key_suffix += 1
+                        
+                        # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS ADIÇÃO ---
+                        # Recarrega TUDO para garantir consistência
+                        st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) 
+                        st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user)
+                        
+                        card_latest_scores_recalc = {}
+                        for entry in reversed(st.session_state.feedback_history):
+                            card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
+                            if card_id not in card_latest_scores_recalc:
+                                card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
+                        cards_for_ordering_recalc = []
+                        for card in st.session_state.user_cartoes:
+                            card_id = (card["pergunta"], card["materia"], card["assunto"])
+                            score_to_order = card_latest_scores_recalc.get(card_id, -1)
+                            cards_for_ordering_recalc.append((card, score_to_order))
+                        st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted(cards_for_ordering_recalc, key=lambda x: x[1])]
 
-                    # Recalcula difficult_cards_for_session
-                    difficult_cards_updated_recalc = []
-                    for card in st.session_state.user_cartoes:
-                        card_id = (card["pergunta"], card["materia"], card["assunto"])
-                        if card_id in card_latest_scores_recalc and card_latest_scores_recalc[card_id] is not None and card_latest_scores_recalc[card_id] < 80:
-                            difficult_cards_updated_recalc.append(card)
-                    st.session_state.difficult_cards_for_session = difficult_cards_updated_recalc
-                    # --- FIM DA ATUALIZAÇÃO ---
+                        difficult_cards_updated_recalc = []
+                        for card in st.session_state.user_cartoes:
+                            card_id = (card["pergunta"], card["materia"], card["assunto"])
+                            if card_id in card_latest_scores_recalc and card_latest_scores_recalc[card_id] is not None and card_latest_scores_recalc[card_id] < 80:
+                                difficult_cards_updated_recalc.append(card)
+                        st.session_state.difficult_cards_for_session = difficult_cards_updated_recalc
+                        # --- FIM DA ATUALIZAÇÃO ---
 
-                    st.rerun()
+                        st.rerun()
                 else:
                     st.warning("Por favor, preencha todos os campos para adicionar um cartão.")
 
@@ -774,9 +784,11 @@ else: # Usuário logado
             return 
 
         for i, card in enumerate(displayed_cards):
-            original_index = st.session_state.user_cartoes.index(card) # ATUALIZADO: Usa user_cartoes para o índice
+            # Para edição/exclusão, precisamos do doc_id do Firestore
+            # Assumimos que o card já tem 'doc_id' por causa de carregar_cartoes
+            card_doc_id = card.get('doc_id') 
 
-            with st.expander(f"Cartão {original_index+1} ({card['materia']} - {card['assunto']}): {card['pergunta'][:50]}..."):
+            with st.expander(f"Cartão ({card.get('doc_id', 'Sem ID')[:6]}...) {card['materia']} - {card['assunto']}: {card['pergunta'][:50]}..."): # Mostra o ID do doc
                 st.write("**Matéria:**", card["materia"])
                 st.write("**Assunto:**", card["assunto"])
                 st.write("**Pergunta:**", card["pergunta"])
@@ -784,8 +796,8 @@ else: # Usuário logado
 
                 col_edit, col_delete = st.columns(2)
                 with col_edit:
-                    if st.button(f"Editar", key=f"edit_card_{original_index}"):
-                        st.session_state.edit_index = original_index
+                    if st.button(f"Editar", key=f"edit_card_{card_doc_id}"): # Usa doc_id para key
+                        st.session_state.edit_index_doc_id = card_doc_id # Armazena o doc_id do cartão a ser editado
                         st.session_state.edit_materia = card["materia"]
                         st.session_state.edit_assunto = card["assunto"]
                         st.session_state.edit_pergunta = card["pergunta"]
@@ -793,65 +805,13 @@ else: # Usuário logado
                         st.rerun()
 
                 with col_delete:
-                    if st.button(f"Excluir", key=f"delete_card_{original_index}"):
-                        st.session_state.user_cartoes.pop(original_index)
-                        salvar_cartoes(st.session_state.user_cartoes, st.session_state.logged_in_user)
+                    if st.button(f"Excluir", key=f"delete_card_{card_doc_id}"): # Usa doc_id para key
+                        # Exclui do Firestore
+                        if excluir_cartao_firestore(card_doc_id, st.session_state.logged_in_user):
+                            # Remove da lista em memória
+                            st.session_state.user_cartoes = [c for c in st.session_state.user_cartoes if c.get('doc_id') != card_doc_id]
                         
-                        # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EXCLUSÃO ---
-                        st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
-                        st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
-                        
-                        # Recalcula ordered_cards_for_session
-                        card_latest_scores_recalc = {}
-                        for entry in reversed(st.session_state.feedback_history):
-                            card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
-                            if card_id not in card_latest_scores_recalc:
-                                card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
-                        cards_for_ordering_recalc = []
-                        for card in st.session_state.user_cartoes:
-                            card_id = (card["pergunta"], card["materia"], card["assunto"])
-                            score_to_order = card_latest_scores_recalc.get(card_id, -1)
-                            cards_for_ordering_recalc.append((card, score_to_order))
-                        st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted(cards_for_ordering_recalc, key=lambda x: x[1])]
-
-                        # Recalcula difficult_cards_for_session
-                        difficult_cards_updated_recalc = []
-                        for card in st.session_state.user_cartoes:
-                            card_id = (card["pergunta"], card["materia"], card["assunto"])
-                            if card_id in card_latest_scores_recalc and card_latest_scores_recalc[card_id] is not None and card_latest_scores_recalc[card_id] < 80:
-                                difficult_cards_updated_recalc.append(card)
-                        st.session_state.difficult_cards_for_session = difficult_cards_updated_recalc
-                        # --- FIM DA ATUALIZAÇÃO ---
-
-                        if st.session_state.current_card_index >= len(st.session_state.user_cartoes):
-                            st.session_state.current_card_index = 0
-                        st.rerun()
-                st.markdown("---")
-
-            if 'edit_index' in st.session_state and st.session_state.edit_index is not None:
-                st.subheader(f"Editar Cartão {st.session_state.edit_index + 1}")
-                with st.form("edit_card_form"):
-                    edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
-                    edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
-                    edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
-                    edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
-                    col_save, col_cancel = st.columns(2)
-                    with col_save:
-                        edited_submitted = st.form_submit_button("Salvar Edição")
-                    with col_cancel:
-                        cancel_edit = st.form_submit_button("Cancelar Edição")
-
-                    if edited_submitted:
-                        if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
-                            st.session_state.user_cartoes[st.session_state.edit_index] = {
-                                "materia": edited_materia.strip(),
-                                "assunto": edited_assunto.strip(),
-                                "pergunta": edited_pergunta.strip(),
-                                "resposta_esperada": edited_resposta.strip()
-                            }
-                            salvar_cartoes(st.session_state.user_cartoes, st.session_state.logged_in_user)
-                            
-                            # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EDIÇÃO ---
+                            # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EXCLUSÃO ---
                             st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
                             st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
                             
@@ -877,12 +837,74 @@ else: # Usuário logado
                             st.session_state.difficult_cards_for_session = difficult_cards_updated_recalc
                             # --- FIM DA ATUALIZAÇÃO ---
 
-                            st.session_state.edit_index = None
+                            if st.session_state.current_card_index >= len(st.session_state.user_cartoes):
+                                st.session_state.current_card_index = 0
                             st.rerun()
+                st.markdown("---")
+
+            # Formulário para editar cartão (aparece apenas se um cartão for selecionado para edição)
+            if 'edit_index_doc_id' in st.session_state and st.session_state.edit_index_doc_id is not None: # Usa doc_id para controle
+                st.subheader(f"Editar Cartão (ID: {st.session_state.edit_index_doc_id[:6]}...)")
+                with st.form("edit_card_form"):
+                    edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
+                    edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
+                    edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
+                    edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
+                    col_save, col_cancel = st.columns(2)
+                    with col_save:
+                        edited_submitted = st.form_submit_button("Salvar Edição")
+                    with col_cancel:
+                        cancel_edit = st.form_submit_button("Cancelar Edição")
+
+                    if edited_submitted:
+                        if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
+                            updated_card_data = { # Dados atualizados para enviar ao Firestore
+                                "materia": edited_materia.strip(),
+                                "assunto": edited_assunto.strip(),
+                                "pergunta": edited_pergunta.strip(),
+                                "resposta_esperada": edited_resposta.strip()
+                            }
+                            # Atualiza no Firestore usando o doc_id
+                            if atualizar_cartao_firestore(st.session_state.edit_index_doc_id, updated_card_data, st.session_state.logged_in_user):
+                                # Atualiza na lista em memória
+                                for i, card in enumerate(st.session_state.user_cartoes):
+                                    if card.get('doc_id') == st.session_state.edit_index_doc_id:
+                                        st.session_state.user_cartoes[i].update(updated_card_data)
+                                        break
+                            
+                                # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EDIÇÃO ---
+                                st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
+                                st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
+                                
+                                # Recalcula ordered_cards_for_session
+                                card_latest_scores_recalc = {}
+                                for entry in reversed(st.session_state.feedback_history):
+                                    card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
+                                    if card_id not in card_latest_scores_recalc:
+                                        card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
+                                cards_for_ordering_recalc = []
+                                for card in st.session_state.user_cartoes:
+                                    card_id = (card["pergunta"], card["materia"], card["assunto"])
+                                    score_to_order = card_latest_scores_recalc.get(card_id, -1)
+                                    cards_for_ordering_recalc.append((card, score_to_order))
+                                st.session_state.ordered_cards_for_session = [card_obj for card_obj, _ in sorted(cards_for_ordering_recalc, key=lambda x: x[1])]
+
+                                # Recalcula difficult_cards_for_session
+                                difficult_cards_updated_recalc = []
+                                for card in st.session_state.user_cartoes:
+                                    card_id = (card["pergunta"], card["materia"], card["assunto"])
+                                    if card_id in card_latest_scores_recalc and card_latest_scores_recalc[card_id] is not None and card_latest_scores_recalc[card_id] < 80:
+                                        difficult_cards_updated_recalc.append(card)
+                                st.session_state.difficult_cards_for_session = difficult_cards_updated_recalc
+                                # --- FIM DA ATUALIZAÇÃO ---
+
+                                st.session_state.edit_index_doc_id = None # Limpa o estado de edição
+                                st.rerun()
+                            # else: a mensagem de erro já foi exibida por atualizar_cartao_firestore
                         else:
                             st.warning("Por favor, preencha todos os campos para salvar a edição.")
                     elif cancel_edit:
-                        st.session_state.edit_index = None
+                        st.session_state.edit_index_doc_id = None
                         st.rerun()
 
 
