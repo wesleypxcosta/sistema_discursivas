@@ -110,6 +110,11 @@ model = genai.GenerativeModel('models/gemini-2.5-flash-preview-05-20')
 # Caminho para o arquivo JSON da sua chave de serviço do Google Cloud
 SERVICE_ACCOUNT_KEY_PATH = "gcp_service_account_key.json"
 
+# Nomes das Coleções no Firestore
+USERS_COLLECTION = "users" # Para armazenar usuários e senhas
+CARDS_COLLECTION = "user_cards" # Para armazenar cartões de cada usuário (subcoleção)
+FEEDBACK_COLLECTION = "feedback_history" # Para armazenar histórico de feedback de cada usuário (subcoleção)
+
 # Tenta inicializar o Firebase Admin SDK
 if not firebase_admin._apps: # Verifica se a aplicação Firebase já foi inicializada
     try:
@@ -139,11 +144,6 @@ if not firebase_admin._apps: # Verifica se a aplicação Firebase já foi inicia
         st.stop()
 
 db = firestore.client() # Inicializa o cliente Firestore
-
-# Nomes das Coleções no Firestore
-USERS_COLLECTION = "users" # Para armazenar usuários e senhas
-CARDS_COLLECTION = "user_cards" # Para armazenar cartões de cada usuário (subcoleção)
-FEEDBACK_COLLECTION = "feedback_history" # Para armazenar histórico de feedback de cada usuário (subcoleção)
 
 # --- Constantes para Nomes de Arquivo e Diretório Base (para compatibilidade/local) ---
 BASE_DATA_DIR = "data"
