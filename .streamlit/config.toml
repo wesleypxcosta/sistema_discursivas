@@ -1,6 +1,6 @@
 [theme]
 # Primary accent color for your app.
-primaryColor="#FF4B4B" # Um tom de vermelho vibrante (Streamlit default)
+primaryColor="#e76f51"
 
 # Background color for the main content area.
 backgroundColor="#FFFFFF" # Branco puro
@@ -18,6 +18,8 @@ font="sans serif"
 # Set the overall theme for your app.
 # Options: "light" or "dark".
 base="light"
+
+baseFontSize=17
 
 [browser]
 title = "Treino de Discursivas"
