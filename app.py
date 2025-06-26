@@ -53,15 +53,15 @@ st.markdown(
         padding: 0.6em 1.2em; /* Preenchimento interno do botão */
         border-radius: 8px; /* Cantos mais arredondados */
         border: none;
-        background-color: #415a77; /* Um azul escuro para botões primários */
-        color: #ffffff; /* Azul escuro para o texto do botão */ 
+        background-color: #a2d2ff; /* Um azul claro para botões primários */
+        color: #415a77; /* Azul escuro para o texto do botão */ 
         cursor: pointer;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra suave para profundidade */
         font-weight: bold; /* Negrito para destaque */ 
         transition: background-color 0.3s ease; /* Efeito de transição suave */
     }
     .stButton > button:hover {
-        background-color: #a2d2ff; /* Azul claro ao passar o mouse */
+        background-color: #415a77; /* Azul escuro ao passar o mouse */
         color: #ffffff; /* Texto branco ao passar o mouse */
         font-weight: bold; /* Negrito ao passar o mouse */
     }
