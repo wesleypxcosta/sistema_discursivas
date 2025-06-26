@@ -54,7 +54,7 @@ st.markdown(
         border-radius: 8px; /* Cantos mais arredondados */
         border: none;
         background-color: #a2d2ff; /* Um azul claro para botões primários */
-        color: #ffffff; /* Branco para o texto do botão */ 
+        color: #000000; /* Branco para o texto do botão */ 
         cursor: pointer;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra suave para profundidade */
         font-weight: bold; /* Negrito para destaque */ 
