@@ -474,7 +474,7 @@ if not inicializar_admin_existencia():
 # Se o usuário não estiver logado, exibe a tela de login
 if st.session_state.logged_in_user is None:
     st.title("Treinamento de Discursivas")
-    st.subheader("Fortaleça sua memória e sua escrita com correções instantâneas do Gemini.")
+    st.subheader("Fortaleça sua memória e aprimore sua escrita com correções instantâneas do Gemini.")
 
     username_login = st.text_input("Usuário:", key="username_login_input_form")
     password_login = st.text_input("Senha:", type="password", key="password_login_input_form")
@@ -532,7 +532,7 @@ if st.session_state.logged_in_user is None:
     
 else: # Usuário logado
     st.title("Treinamento de Discursivas")
-    st.write("Fortaleça sua **memória** e sua **escrita** com correções instantâneas do **Gemini**.")
+    st.write("Fortaleça sua **memória** e aprimore sua **escrita** com correções instantâneas do **Gemini**.")
     st.write(f"Bem-vindo(a), **{st.session_state.logged_in_user}**.")
 
     # Botão de Logout
