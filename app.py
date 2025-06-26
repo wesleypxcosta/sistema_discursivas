@@ -333,7 +333,7 @@ def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada)
 
     O feedback deve ser dividido em seções claras, sem rodeios.
 
-    Quanto às sugestões de melhoria textual, elas devem ser **concisas** e diretas, focando em clareza, concisão e correção, sem entrar em detalhes excessivos. Verifique ainda, se o texto do usuário possui ambiguidades, se há falhas de paralelismo sintático, se a estrutura gramatical é confusa ou se há caso de repetição desnecessária (Exemplo deste último caso: "Cada aluno, individualmente, terá direito a dois convites para a festa de formatura.") . Aponte as melhorias de forma direta e prática, sem rodeios.
+    Quanto às sugestões de melhoria textual, elas devem ser **concisas** e diretas, focando em clareza, concisão e correção, sem entrar em detalhes excessivos. Verifique ainda, se o texto do usuário possui ambiguidades, se há falhas de paralelismo sintático, se a estrutura gramatical é confusa ou se há caso de repetição desnecessária que gerem redundância. Aponte as melhorias de forma direta e prática, sem rodeios.
 
     **Estrutura de Feedback Requerida:**
 
