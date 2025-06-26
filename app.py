@@ -26,11 +26,11 @@ st.markdown(
 
     /* Títulos do Streamlit */
     h1 {
-        font-size: 2.2em !important; /* !important força a aplicação do estilo */
+        font-size: 2em !important; /* !important força a aplicação do estilo */
         color: #0E4D92; /* Um azul mais escuro para o título principal */
     }
     h2 {
-        font-size: 1.8em !important;
+        font-size: 1.5em !important;
         color: #1A5E95; /* Tom de azul ligeiramente mais claro */
     }
     h3 {
@@ -474,7 +474,7 @@ if not inicializar_admin_existencia():
 # Se o usuário não estiver logado, exibe a tela de login
 if st.session_state.logged_in_user is None:
     st.title("Treinamento de Discursivas")
-    st.subheader("Fortaleça sua memória e aprimore sua escrita com correções instantâneas do Gemini.")
+    st.subheader("Seja bem-vindo! Informe seus dados de acesso.")
 
     username_login = st.text_input("Usuário:", key="username_login_input_form")
     password_login = st.text_input("Senha:", type="password", key="password_login_input_form")
