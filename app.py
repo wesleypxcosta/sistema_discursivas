@@ -40,10 +40,11 @@ st.markdown(
 
     /* Personaliza o campo de input de texto (pergunta, resposta) */
     .stTextArea, .stTextInput {
-        font-size: 1.05em !important;
-        background-color: #f8f9fa; /* Fundo levemente cinza */
+        font-size: 1.2em !important;
+        background-color: #ffffff; /* Fundo levemente cinza */
         border-radius: 5px;
-        border: 1px solid #ced4da;
+        border: 2px solid #ced4da;
+        padding: 0.5em; /* Preenchimento interno */
     }
 
     /* Estiliza os botões */
@@ -52,12 +53,17 @@ st.markdown(
         padding: 0.6em 1.2em; /* Preenchimento interno do botão */
         border-radius: 8px; /* Cantos mais arredondados */
         border: none;
-        background-color: #4CAF50; /* Um verde bacana para botões primários */
-        color: white;
+        background-color: #a2d2ff; /* Um azul claro para botões primários */
+        color: #03045e; /* Azul escuro para o texto do botão */ 
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra suave para profundidade */
+        font-weight: bold; /* Negrito para destaque */ 
         transition: background-color 0.3s ease; /* Efeito de transição suave */
     }
     .stButton > button:hover {
-        background-color: #45a049; /* Verde um pouco mais escuro ao passar o mouse */
+        background-color: #415a77; /* Cinza um pouco escuro ao passar o mouse */
+        color: #ffffff; /* Texto branco ao passar o mouse */
+        font-weight: bold; /* Negrito ao passar o mouse */
     }
 
     /* Estilo para botões secundários (como "Limpar Histórico") */
@@ -319,30 +325,32 @@ def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada)
         return "Por favor, forneça ambas as respostas para comparação."
 
     prompt = f"""
-    Sua tarefa é fornecer um feedback **sucinto e objetivo** para la 'Resposta do Usuário' em relação à 'Resposta Esperada' e, crucialmente, em relação à **Pergunta** feita.
-    A ideia é que o usuário ganhe agilidade no aprendizado, focando nos puntos esenciales **relevantes para la Pergunta**.
+    Sua tarefa é fornecer um feedback **sucinto e objetivo** para a 'Resposta do Usuário' em relação à 'Resposta Esperada' e, crucialmente, em relação à **Pergunta** feita.
+    A ideia é que o usuário ganhe agilidade no aprendizado, focando nos pontos essenciais **relevantes para a Pergunta**.
 
-    Ao avaliar, desconsidere detalhes da 'Resposta Esperada' (como número de artigo, formatação, ordem exata de enumeração, ou informações contextuais que la Pergunta NÃO solicitou explicitamente).
-    Foque se la 'Resposta do Usuário' aborda os pontos essenciais que la **Pergunta** exigia, conforme os critérios contidos na 'Resposta Esperada'.
+    Ao avaliar, desconsidere detalhes da 'Resposta Esperada' (como número de artigo, formatação, ordem exata de enumeração, ou informações contextuais que a Pergunta NÃO solicitou explicitamente).
+    Foque se a 'Resposta do Usuário' aborda os pontos essenciais que a **Pergunta** exigia, conforme os critérios contidos na 'Resposta Esperada'.
 
-    O feedback deve ser dividido en seções claras, sem rodeios.
+    O feedback deve ser dividido em seções claras, sem rodeios.
+
+    Quanto às sugestões de melhoria textual, elas devem ser **concisas** e diretas, focando em clareza, concisão e correção, sem entrar em detalhes excessivos. Verifique ainda, se o texto do usuário possui ambiguidades, se há falhas de paralelismo sintático, se a estrutura gramatical é confusa ou se há caso de repetição desnecessária (Exemplo deste último caso: "Cada aluno, individualmente, terá direito a dois convites para a festa de formatura.") . Aponte as melhorias de forma direta e prática, sem rodeios.
 
     **Estrutura de Feedback Requerida:**
 
-    **1. Pontuação de Sentido (0-100):**
-    [Uma pontuação numérica de 0 a 100% baseada na similaridade de sentido com la Resposta Esperada, **considerando la relevância para la Pergunta**. 100% = sentido idéntico e completo **para la Pergunta**.]
+    **1. Pontuação de Sentido (0-100%):**
+    [Uma pontuação numérica de 0 a 100% baseada na similaridade de sentido com a Resposta Esperada, **considerando a relevância para a Pergunta**. 100% = sentido idêntico e completo **para a Pergunta**.]
 
     **2. Avaliação Principal do Sentido:**
     [Feedback qualitativo muito breve (ex: "Excelente.", "Bom, mas faltou X.", "Incompleto.", "Incorreto.").]
 
     **3. Lacunas de Conteúdo:**
-    [Liste os puntos clave de la Resposta Esperada que NÃO foram abordados ou foram abordados de forma insuficiente na Resposta do Usuário **E que são relevantes para la Pergunta**. Use bullet points sucintos. Se não houver lacunas, diga "Nenhuma lacuna significativa."]
+    [Liste os pontos-chave da Resposta Esperada que NÃO foram abordados ou foram abordados de forma insuficiente na Resposta do Usuário **E que são relevantes para a Pergunta**. Use bullet points sucintos. Se não houver lacunas, diga "Nenhuma lacuna significativa."]
 
     **4. Erros Gramaticais/Ortográficos:**
     [Liste os principais erros encontrados na 'Resposta do Usuário'. Formato: 'Palavra/Frase Incorreta' -> 'Sugestão de Correção'. Se não houver, diga "Nenhum erro encontrado."]
 
     **5. Sugestões Rápidas de Melhoria:**
-    [Sugestões muito concisas para aprimorar la resposta em termos de clareza, concisão e correção, baseadas nos erros e lacunas. Use bullet points.]
+    [Sugestões muito concisas para aprimorar a resposta em termos de clareza, concisão e correção, baseadas nos erros e lacunas. Use bullet points.]
 
     ---
     Pergunta:
@@ -465,10 +473,10 @@ if not inicializar_admin_existencia():
 
 # Se o usuário não estiver logado, exibe a tela de login
 if st.session_state.logged_in_user is None:
-    st.title("Bem-vindo ao Sistema de Treino!")
-    st.subheader("Por favor, faça login para continuar:")
+    st.title("*Treinamento de Discursivas*")
+    st.subheader("Fortaleça sua memória e sua escrita com correções instantâneas do Gemini.")
 
-    username_login = st.text_input("Nome de Usuário:", key="username_login_input_form")
+    username_login = st.text_input("Usuário:", key="username_login_input_form")
     password_login = st.text_input("Senha:", type="password", key="password_login_input_form")
     
     col_login_btns_1, col_login_btns_2 = st.columns(2)
@@ -523,8 +531,9 @@ if st.session_state.logged_in_user is None:
     pass 
     
 else: # Usuário logado
-    st.title(f"Sistema de Treino para Provas Discursivas de {st.session_state.logged_in_user}")
-    st.write("Bem-vindo! Este é o seu sistema de flashcards inteligente com feedback do Gemini!")
+    st.title("*Treinamento de Discursivas*")
+    st.write("Fortaleça sua **memória** e sua **escrita** com correções instantâneas do **Gemini**.")
+    st.write(f"Bem-vindo(a), **{st.session_state.logged_in_user}**.")
 
     # Botão de Logout
     if st.sidebar.button("Sair", key="logout_button"):
@@ -542,9 +551,9 @@ else: # Usuário logado
     # Define quais abas serão exibidas e cria as referências para os blocos 'with'
     tab_options = []
     if st.session_state.logged_in_user == ADMIN_USERNAME:
-        tab_options = ["Todas as Perguntas", "Gerenciar Cartões", "Métricas de Desempenho", "Perguntas Mais Difíceis", "Gerenciar Usuários"]
+        tab_options = ["Todas as Perguntas", "Perguntas Mais Difíceis", "Gerenciar Cartões", "Métricas de Desempenho", "Gerenciar Usuários"]
     else:
-        tab_options = ["Todas as Perguntas", "Gerenciar Cartões", "Métricas de Desempenho", "Perguntas Mais Difíceis"]
+        tab_options = ["Todas as Perguntas", "Perguntas Mais Difíceis", "Gerenciar Cartões", "Métricas de Desempenho"]
 
     selected_tab = st.sidebar.radio("Navegar entre Seções:", tab_options, key="main_tab_selector")
 
@@ -554,7 +563,7 @@ else: # Usuário logado
     # e para que não sejam redefinidas desnecessariamente.
 
     def render_tab_all_questions():
-        st.header("Modo de Prática: Todas as Perguntas")
+        st.header("Prática: todas as perguntas")
         
         current_practice_cards_tab1 = st.session_state.ordered_cards_for_session 
         
@@ -584,10 +593,10 @@ else: # Usuário logado
         st.info(current_card_tab1["pergunta"])
 
         user_answer_tab1 = st.text_area("Sua Resposta:",
-                                    height=150,
+                                    height=200,
                                     key=f"user_answer_input_tab1_{st.session_state.current_card_index}")
 
-        if st.button("Verificar Resposta com Gemini", key="check_response_btn_tab1"):
+        if st.button("Verificar Resposta", key="check_response_btn_tab1"):
             if user_answer_tab1.strip():
                 with st.spinner("Analisando com Gemini..."):
                     # Passa a pergunta também para o Gemini
@@ -707,10 +716,10 @@ else: # Usuário logado
                                          key="new_assunto_input")
             
             nova_pergunta = st.text_area("Nova Pergunta:",
-                                         height=100,
+                                         height=200,
                                          key=f"new_q_input_{st.session_state.add_card_form_key_suffix}")
             nova_resposta = st.text_area("Nova Resposta Esperada:",
-                                         height=100,
+                                         height=200,
                                          key=f"new_a_input_{st.session_state.add_card_form_key_suffix}")
             
             submitted = st.form_submit_button("Adicionar Cartão")
@@ -854,8 +863,8 @@ else: # Usuário logado
             with st.form(key=f"edit_card_form_for_{st.session_state.edit_index_doc_id}"): # <-- CHAVE AGORA É DINÂMICA
                 edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
                 edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
-                edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
-                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
+                edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=200, key="edit_q_input")
+                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=200, key="edit_ans_input")
                 col_save, col_cancel = st.columns(2)
                 with col_save:
                     edited_submitted = st.form_submit_button("Salvar Edição")
@@ -974,7 +983,7 @@ else: # Usuário logado
 
 
     def render_tab_difficult_questions():
-        st.header("Modo de Prática: Perguntas Mais Difíceis")
+        st.header("Prática: perguntas mais difíceis")
 
         current_practice_cards_difficult = st.session_state.difficult_cards_for_session
         
