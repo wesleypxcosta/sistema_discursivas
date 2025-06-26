@@ -337,7 +337,7 @@ def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada)
 
     **Estrutura de Feedback Requerida:**
 
-    **1. Pontuação de Sentido (0-100%):**
+    **1. Pontuação de Sentido (0-100):**
     [Uma pontuação numérica de 0 a 100% baseada na similaridade de sentido com a Resposta Esperada, **considerando a relevância para a Pergunta**. 100% = sentido idêntico e completo **para a Pergunta**.]
 
     **2. Avaliação Principal do Sentido:**
