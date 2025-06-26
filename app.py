@@ -53,15 +53,15 @@ st.markdown(
         padding: 0.6em 1.2em; /* Preenchimento interno do botão */
         border-radius: 8px; /* Cantos mais arredondados */
         border: none;
-        background-color: #a2d2ff; /* Um azul claro para botões primários */
-        color: #ffffff; /* Branco para o texto do botão */ 
+        background-color: #cae9ff; /* Um azul claro para botões primários */
+        color: #13315c; /* Azul escuro para o texto do botão */ 
         cursor: pointer;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra suave para profundidade */
         font-weight: bold; /* Negrito para destaque */ 
         transition: background-color 0.3s ease; /* Efeito de transição suave */
     }
     .stButton > button:hover {
-        background-color: #415a77; /* Azul escuro ao passar o mouse */
+        background-color: #415a77; /* Cinza um pouco escuro ao passar o mouse */
         color: #ffffff; /* Texto branco ao passar o mouse */
         font-weight: bold; /* Negrito ao passar o mouse */
     }
@@ -473,7 +473,7 @@ if not inicializar_admin_existencia():
 
 # Se o usuário não estiver logado, exibe a tela de login
 if st.session_state.logged_in_user is None:
-    st.title("*Treinamento de Discursivas*")
+    st.title("Treinamento de Discursivas")
     st.subheader("Fortaleça sua memória e sua escrita com correções instantâneas do Gemini.")
 
     username_login = st.text_input("Usuário:", key="username_login_input_form")
@@ -531,7 +531,7 @@ if st.session_state.logged_in_user is None:
     pass 
     
 else: # Usuário logado
-    st.title("*Treinamento de Discursivas*")
+    st.title("Treinamento de Discursivas")
     st.write("Fortaleça sua **memória** e sua **escrita** com correções instantâneas do **Gemini**.")
     st.write(f"Bem-vindo(a), **{st.session_state.logged_in_user}**.")
 
