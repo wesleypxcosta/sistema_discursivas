@@ -672,13 +672,13 @@ else: # Usuário logado
 
         nav_col1_tab1, nav_col2_tab1, nav_col3_tab1, nav_col4_tab1 = st.columns(4)
         with nav_col1_tab1:
-            if st.button("Primeiro Cartão", key="first_card_btn_tab1"):
+            if st.button("Primeiro", key="first_card_btn_tab1"):
                 st.session_state.current_card_index = 0
                 st.session_state.show_expected_answer = False
                 st.session_state.last_gemini_feedback_display_parsed = None
                 st.rerun()
         with nav_col2_tab1:
-            if st.button("Cartão Anterior", key="prev_card_btn_tab1"):
+            if st.button("Anterior", key="prev_card_btn_tab1"):
                 if st.session_state.current_card_index > 0:
                     st.session_state.current_card_index -= 1
                     st.session_state.show_expected_answer = False
@@ -687,7 +687,7 @@ else: # Usuário logado
                 else:
                     st.info("Você está no primeiro cartão.")
         with nav_col3_tab1:
-            if st.button("Próximo Cartão", key="next_card_btn_tab1"):
+            if st.button("Próximo", key="next_card_btn_tab1"):
                 if st.session_state.current_card_index < len(filtered_cards_tab1) - 1:
                     st.session_state.current_card_index += 1
                     st.session_state.show_expected_answer = False
@@ -696,7 +696,7 @@ else: # Usuário logado
                 else:
                     st.info("Você está no último cartão.")
         with nav_col4_tab1:
-            if st.button("Último Cartão", key="last_card_btn_tab1"):
+            if st.button("Último", key="last_card_btn_tab1"):
                 st.session_state.current_card_index = len(filtered_cards_tab1) - 1
                 st.session_state.show_expected_answer = False
                 st.session_state.last_gemini_feedback_display_parsed = None
