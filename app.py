@@ -42,7 +42,7 @@ st.markdown(
     .stTextArea, .stTextInput {
         font-size: 1.2em !important;
         background-color: #bfd7ea; /* Fundo levemente cinza */
-        border-radius: 1px;
+        border-radius: 3px;
         border: 2px solid #ced4da;
         padding: 0.5em; /* Preenchimento interno */
     }
