@@ -53,7 +53,7 @@ st.markdown(
         padding: 0.6em 1.2em; /* Preenchimento interno do botão */
         border-radius: 8px; /* Cantos mais arredondados */
         border: none;
-        background-color: #cae9ff; /* Um azul claro para botões primários */
+        background-color: #bfd7ea; /* Um azul claro para botões primários cae9ff*/
         color: #13315c; /* Azul escuro para o texto do botão */ 
         cursor: pointer;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra suave para profundidade */
