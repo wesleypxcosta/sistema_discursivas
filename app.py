@@ -1016,7 +1016,7 @@ else: # Usuário logado
                                     height=150,
                                     key=f"user_answer_input_difficult_{st.session_state.current_card_index_difficult}")
 
-        if st.button("Verificar Resposta com Gemini (Difíceis)", key="check_response_btn_difficult"):
+        if st.button("Verificar Resposta", key="check_response_btn_difficult"):
             if user_answer_difficult.strip():
                 with st.spinner("Analisando com Gemini..."):
                     # Passa a pergunta também para o Gemini
@@ -1070,7 +1070,7 @@ else: # Usuário logado
             st.subheader("Resposta Esperada:")
             st.success(current_card_difficult["resposta_esperada"])
         
-        elif st.button("Revelar Resposta Esperada (Difíceis)", key="reveal_btn_difficult"):
+        elif st.button("Revelar Resposta Esperada", key="reveal_btn_difficult"):
             st.session_state.show_expected_answer = True
             st.session_state.last_gemini_feedback_display_parsed = None
             
@@ -1080,13 +1080,13 @@ else: # Usuário logado
 
         nav_col1_d, nav_col2_d, nav_col3_d, nav_col4_d = st.columns(4)
         with nav_col1_d:
-            if st.button("Primeiro (Difíceis)", key="first_card_btn_difficult"):
+            if st.button("Primeiro", key="first_card_btn_difficult"):
                 st.session_state.current_card_index_difficult = 0
                 st.session_state.show_expected_answer = False
                 st.session_state.last_gemini_feedback_display_parsed = None
                 st.rerun()
             with nav_col2_d:
-                if st.button("Anterior (Difíceis)", key="prev_card_btn_difficult"):
+                if st.button("Anterior", key="prev_card_btn_difficult"):
                     if st.session_state.current_card_index_difficult > 0:
                         st.session_state.current_card_index_difficult -= 1
                         st.session_state.show_expected_answer = False
@@ -1095,7 +1095,7 @@ else: # Usuário logado
                     else:
                         st.info("Você está no primeiro cartão difícil.")
             with nav_col3_d:
-                if st.button("Próximo (Difícil)", key="next_card_btn_difficult"):
+                if st.button("Próximo", key="next_card_btn_difficult"):
                     if st.session_state.current_card_index_difficult < len(filtered_cards_difficult) - 1:
                         st.session_state.current_card_index_difficult += 1
                         st.session_state.show_expected_answer = False
@@ -1104,7 +1104,7 @@ else: # Usuário logado
                     else:
                         st.info("Você está no último cartão difícil.")
             with nav_col4_d:
-                if st.button("Último (Difíceis)", key="last_card_btn_difficult"):
+                if st.button("Último", key="last_card_btn_difficult"):
                     st.session_state.current_card_index_difficult = len(filtered_cards_difficult) - 1
                     st.session_state.show_expected_answer = False
                     st.session_state.last_gemini_feedback_display_parsed = None
