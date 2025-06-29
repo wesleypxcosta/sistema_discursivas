@@ -43,7 +43,7 @@ st.markdown(
         font-size: 1.2em !important;
         background-color: #bfd7ea; /* Fundo levemente cinza */
         border-radius: 3px;
-        /* border: 2px solid #ced4da; */
+        border: 2px solid #ced4da;
         padding: 0.5em; /* Preenchimento interno */
     }
 
@@ -51,7 +51,7 @@ st.markdown(
     .stButton > button {
         font-size: 1.1em !important;
         padding: 0.6em 1.2em; /* Preenchimento interno do botão */
-        border-radius: 0px; /* Cantos mais arredondados */
+        border-radius: 8px; /* Cantos mais arredondados */
         border: none;
         background-color: #bfd7ea; /* Um azul claro para botões primários cae9ff*/
         color: #13315c; /* Azul escuro para o texto do botão */ 
