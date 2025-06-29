@@ -41,7 +41,7 @@ st.markdown(
     /* Personaliza o campo de input de texto (pergunta, resposta) */
     .stTextArea, .stTextInput {
         font-size: 1.2em !important;
-        background-colorw: #bfd7ea; /* Fundo levemente cinza */
+        background-color: #d7e8f5; /* Fundo levemente cinza */
         border-radius: 3px;
         padding: 0.5em; /* Preenchimento interno */
     }
