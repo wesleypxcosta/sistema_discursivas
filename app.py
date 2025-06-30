@@ -328,11 +328,11 @@ def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada)
     A ideia é que o usuário ganhe agilidade no aprendizado, focando nos pontos essenciais **relevantes para a Pergunta**.
 
     Ao avaliar, desconsidere detalhes da 'Resposta Esperada' (como número de artigo, formatação, ordem exata de enumeração, ou informações contextuais que a Pergunta NÃO solicitou explicitamente).
-    Foque se a 'Resposta do Usuário' aborda os pontos essenciais que a **Pergunta** exigia, conforme os critérios contidos na 'Resposta Esperada'.
+    Foque se a 'Resposta do Usuário' aborda os pontos essenciais que a **Pergunta** exigia, conforme os critérios contidos na 'Resposta Esperada'. Caso o usuário forneça informações que não constem da resposta esperada, verifique se ela é relevante para a Pergunta. Se for, não a considere como erro.
 
     O feedback deve ser dividido em seções claras, sem rodeios.
 
-    Quanto às sugestões de melhoria textual, elas devem ser **concisas** e diretas, focando em clareza, concisão e correção, sem entrar em detalhes excessivos. Verifique ainda, se o texto do usuário possui ambiguidades, se há falhas de paralelismo sintático, se a estrutura gramatical é confusa. Verifique se há caso de repetição de palavras redundantes, exceto aquelas utilizadas para manter o paralelismo sintático. Observe-se que, em regra, a resposta do usuário deve ser em texto corrido e, portanto, mesmo que na Resposta Esperada contenha bullet points, o usuário não precisa utilizá-los em sua resposta. Aponte as melhorias de forma direta e prática, sem rodeios.
+    Quanto às sugestões de melhoria textual, elas devem ser **concisas** e diretas, focando em clareza, concisão e correção, sem entrar em detalhes excessivos. Verifique ainda, se o texto do usuário possui ambiguidades e se a estrutura gramatical é confusa. Observe-se que, em regra, a resposta do usuário deve ser em texto corrido e, portanto, mesmo que na Resposta Esperada contenha bullet points, o usuário não precisa utilizá-los em sua resposta. Aponte as melhorias de forma direta e prática, sem rodeios.
 
     **Estrutura de Feedback Requerida:**
 
