@@ -109,7 +109,7 @@ if not GOOGLE_API_KEY:
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-model = genai.GenerativeModel('models/gemini-2.0-flash')
+model = genai.GenerativeModel('models/gemini-2.5-flash-lite-preview-06-17')
 
 # --- CONFIGURAÇÃO DO FIRESTORE ---
 # Caminho para o arquivo JSON da sua chave de serviço do Google Cloud para TESTE LOCAL
