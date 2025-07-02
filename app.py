@@ -592,7 +592,7 @@ else: # Usuário logado
         st.info(current_card_tab1["pergunta"])
 
         user_answer_tab1 = st.text_area("Sua Resposta:",
-                                    height=200,
+                                    height=300,
                                     key=f"user_answer_input_tab1_{st.session_state.current_card_index}")
 
         if st.button("Verificar Resposta", key="check_response_btn_tab1"):
