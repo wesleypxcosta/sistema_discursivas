@@ -5,8 +5,6 @@ import streamlit as st
 import datetime
 import re
 import hashlib
-import firebase_admin 
-from firebase_admin import credentials, firestore
 
 # --- ESTILIZAÇÃO CUSTOMIZADA DA INTERFACE (CSS INJETADO) ---
 st.markdown(
@@ -109,7 +107,7 @@ if not GOOGLE_API_KEY:
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-model = genai.GenerativeModel('models/gemini-2.5-flash')
+model = genai.GenerativeModel('models/gemini-2.5-flash-preview-05-20')
 
 # --- CONFIGURAÇÃO DO FIRESTORE ---
 # Caminho para o arquivo JSON da sua chave de serviço do Google Cloud para TESTE LOCAL
@@ -125,13 +123,14 @@ try:
     firebase_admin.get_app() # Tenta obter o app, se já inicializado
 except ValueError: # Este erro ocorre se o app não foi inicializado
     try:
-        # **SOLUÇÃO: PRIORIZA O ARQUIVO LOCAL PRIMEIRO, E SÓ DEPOIS TENTA OS SECRETS/PADRÃO**
+        # **SOLUÇÃO: TENTA O ARQUIVO LOCAL DE CREDENCIAIS PRIMEIRO (para desenvolvimento)**
         if os.path.exists(SERVICE_ACCOUNT_KEY_PATH_LOCAL):
             cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH_LOCAL)
             firebase_admin.initialize_app(cred)
             st.success(f"Firebase inicializado via arquivo local: {SERVICE_ACCOUNT_KEY_PATH_LOCAL}")
         # EM SEGUNDO, TENTA CARREGAR DE STREAMLIT SECRETS (para deploy na nuvem)
-        elif st.secrets.get("FIRESTORE_CREDENTIALS_JSON") and st.secrets.get("GOOGLE_CLOUD_PROJECT_ID"): # <-- USAR .get()
+        # st.secrets.get() é mais seguro pois não levanta erro se o secret não existe
+        elif st.secrets.get("FIRESTORE_CREDENTIALS_JSON") and st.secrets.get("GOOGLE_CLOUD_PROJECT_ID"):
             cred_info_json = json.loads(st.secrets["FIRESTORE_CREDENTIALS_JSON"])
             project_id_from_secrets = st.secrets["GOOGLE_CLOUD_PROJECT_ID"]
             
@@ -324,32 +323,30 @@ def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada)
         return "Por favor, forneça ambas as respostas para comparação."
 
     prompt = f"""
-    Sua tarefa é fornecer um feedback **sucinto e objetivo** para a 'Resposta do Usuário' em relação à 'Resposta Esperada' e, crucialmente, em relação à **Pergunta** feita.
-    A ideia é que o usuário ganhe agilidade no aprendizado, focando nos pontos essenciais **relevantes para a Pergunta**.
+    Sua tarefa é fornecer um feedback **sucinto e objetivo** para la 'Resposta do Usuário' em relação à 'Resposta Esperada' e, crucialmente, em relação à **Pergunta** feita.
+    A ideia é que o usuário ganhe agilidade no aprendizado, focando nos puntos esenciales **relevantes para la Pergunta**.
 
-    Ao avaliar, desconsidere detalhes da 'Resposta Esperada' (como número de artigo, formatação, ordem exata de enumeração, ou informações contextuais que a Pergunta NÃO solicitou explicitamente).
-    Foque se a 'Resposta do Usuário' aborda os pontos essenciais que a **Pergunta** exigia, conforme os critérios contidos na 'Resposta Esperada'. Caso o usuário forneça informações que não constem da resposta esperada, verifique se ela é relevante para a Pergunta. Se for, não a considere como erro.
+    Ao avaliar, desconsidere detalhes da 'Resposta Esperada' (como número de artigo, formatação, ordem exata de enumeração, ou informações contextuais que la Pergunta NÃO solicitou explicitamente).
+    Foque se la 'Resposta do Usuário' aborda os pontos essenciais que la **Pergunta** exigia, conforme os critérios contidos na 'Resposta Esperada'.
 
-    O feedback deve ser dividido em seções claras, sem rodeios.
-
-    Quanto às sugestões de melhoria textual, elas devem ser **concisas** e diretas, focando em clareza, concisão e correção, sem entrar em detalhes excessivos. Verifique ainda, se o texto do usuário possui ambiguidades e se a estrutura gramatical é confusa. Observe-se que, em regra, a resposta do usuário deve ser em texto corrido e, portanto, mesmo que na Resposta Esperada contenha bullet points, o usuário não precisa utilizá-los em sua resposta. Aponte as melhorias de forma direta e prática, sem rodeios.
+    O feedback deve ser dividido en seções claras, sem rodeios.
 
     **Estrutura de Feedback Requerida:**
 
     **1. Pontuação de Sentido (0-100):**
-    [Uma pontuação numérica de 0 a 100% baseada na similaridade de sentido com a Resposta Esperada, **considerando a relevância para a Pergunta**. 100% = sentido idêntico e completo **para a Pergunta**.]
+    [Uma pontuação numérica de 0 a 100% baseada na similaridade de sentido com la Resposta Esperada, **considerando la relevância para la Pergunta**. 100% = sentido idéntico e completo **para la Pergunta**.]
 
     **2. Avaliação Principal do Sentido:**
     [Feedback qualitativo muito breve (ex: "Excelente.", "Bom, mas faltou X.", "Incompleto.", "Incorreto.").]
 
     **3. Lacunas de Conteúdo:**
-    [Liste os pontos-chave da Resposta Esperada que NÃO foram abordados ou foram abordados de forma insuficiente na Resposta do Usuário **E que são relevantes para a Pergunta**. Use bullet points sucintos. Se não houver lacunas, diga "Nenhuma lacuna significativa."]
+    [Liste os puntos clave de la Resposta Esperada que NÃO foram abordados ou foram abordados de forma insuficiente na Resposta do Usuário **E que são relevantes para la Pergunta**. Use bullet points sucintos. Se não houver lacunas, diga "Nenhuma lacuna significativa."]
 
     **4. Erros Gramaticais/Ortográficos:**
     [Liste os principais erros encontrados na 'Resposta do Usuário'. Formato: 'Palavra/Frase Incorreta' -> 'Sugestão de Correção'. Se não houver, diga "Nenhum erro encontrado."]
 
     **5. Sugestões Rápidas de Melhoria:**
-    [Sugestões muito concisas para aprimorar a resposta em termos de clareza, concisão e correção, baseadas nos erros e lacunas. Use bullet points.]
+    [Sugestões muito concisas para aprimorar la resposta em termos de clareza, concisão e correção, baseadas nos erros e lacunas. Use bullet points.]
 
     ---
     Pergunta:
@@ -472,10 +469,10 @@ if not inicializar_admin_existencia():
 
 # Se o usuário não estiver logado, exibe a tela de login
 if st.session_state.logged_in_user is None:
-    st.title("Treinamento de Discursivas")
-    st.subheader("Seja bem-vindo! Informe seus dados de acesso.")
+    st.title("Bem-vindo ao Sistema de Treino!")
+    st.subheader("Por favor, faça login para continuar:")
 
-    username_login = st.text_input("Usuário:", key="username_login_input_form")
+    username_login = st.text_input("Nome de Usuário:", key="username_login_input_form")
     password_login = st.text_input("Senha:", type="password", key="password_login_input_form")
     
     col_login_btns_1, col_login_btns_2 = st.columns(2)
@@ -530,9 +527,8 @@ if st.session_state.logged_in_user is None:
     pass 
     
 else: # Usuário logado
-    st.title("Treinamento de Discursivas")
-    st.write("Fortaleça sua **memória** e aprimore sua **escrita** com correções instantâneas do **Gemini**.")
-    st.write(f"Bem-vindo(a), **{st.session_state.logged_in_user}**.")
+    st.title(f"Sistema de Treino para Provas Discursivas de {st.session_state.logged_in_user}")
+    st.write("Bem-vindo! Este é o seu sistema de flashcards inteligente com feedback do Gemini!")
 
     # Botão de Logout
     if st.sidebar.button("Sair", key="logout_button"):
@@ -550,9 +546,9 @@ else: # Usuário logado
     # Define quais abas serão exibidas e cria as referências para os blocos 'with'
     tab_options = []
     if st.session_state.logged_in_user == ADMIN_USERNAME:
-        tab_options = ["Todas as Perguntas", "Perguntas Mais Difíceis", "Gerenciar Cartões", "Métricas de Desempenho", "Gerenciar Usuários"]
+        tab_options = ["Todas as Perguntas", "Gerenciar Cartões", "Métricas de Desempenho", "Perguntas Mais Difíceis", "Gerenciar Usuários"]
     else:
-        tab_options = ["Todas as Perguntas", "Perguntas Mais Difíceis", "Gerenciar Cartões", "Métricas de Desempenho"]
+        tab_options = ["Todas as Perguntas", "Gerenciar Cartões", "Métricas de Desempenho", "Perguntas Mais Difíceis"]
 
     selected_tab = st.sidebar.radio("Navegar entre Seções:", tab_options, key="main_tab_selector")
 
@@ -562,7 +558,7 @@ else: # Usuário logado
     # e para que não sejam redefinidas desnecessariamente.
 
     def render_tab_all_questions():
-        st.header("Prática: todas as perguntas")
+        st.header("Modo de Prática: Todas as Perguntas")
         
         current_practice_cards_tab1 = st.session_state.ordered_cards_for_session 
         
@@ -592,10 +588,10 @@ else: # Usuário logado
         st.info(current_card_tab1["pergunta"])
 
         user_answer_tab1 = st.text_area("Sua Resposta:",
-                                    height=300,
+                                    height=150,
                                     key=f"user_answer_input_tab1_{st.session_state.current_card_index}")
 
-        if st.button("Verificar Resposta", key="check_response_btn_tab1"):
+        if st.button("Verificar Resposta com Gemini", key="check_response_btn_tab1"):
             if user_answer_tab1.strip():
                 with st.spinner("Analisando com Gemini..."):
                     # Passa a pergunta também para o Gemini
@@ -715,10 +711,10 @@ else: # Usuário logado
                                          key="new_assunto_input")
             
             nova_pergunta = st.text_area("Nova Pergunta:",
-                                         height=200,
+                                         height=100,
                                          key=f"new_q_input_{st.session_state.add_card_form_key_suffix}")
             nova_resposta = st.text_area("Nova Resposta Esperada:",
-                                         height=200,
+                                         height=100,
                                          key=f"new_a_input_{st.session_state.add_card_form_key_suffix}")
             
             submitted = st.form_submit_button("Adicionar Cartão")
@@ -805,8 +801,7 @@ else: # Usuário logado
 
                 col_edit, col_delete = st.columns(2)
                 with col_edit:
-                    # Botão Editar dentro do loop
-                    if st.button(f"Editar", key=f"edit_card_btn_{card_doc_id}"): # Key única
+                    if st.button(f"Editar", key=f"edit_card_btn_{card_doc_id}"): # Usa doc_id para key
                         st.session_state.edit_index_doc_id = card_doc_id # Armazena o doc_id do cartão a ser editado
                         # Carrega os dados do cartão para os inputs do formulário de edição
                         st.session_state.edit_materia = card["materia"]
@@ -853,49 +848,47 @@ else: # Usuário logado
                             st.rerun()
                 st.markdown("---")
 
-        # --- Formulário de Edição (FORA DO LOOP de exibição de cartões) ---
-        # Este formulário só é renderizado se st.session_state.edit_index_doc_id não for None
-        if 'edit_index_doc_id' in st.session_state and st.session_state.edit_index_doc_id is not None: 
-            st.subheader(f"Editar Cartão (ID: {st.session_state.edit_index_doc_id[:6]}...)")
-            
-            # A CHAVE DO FORMULÁRIO É AGORA ÚNICA POR MEIO DO doc_id
-            with st.form(key=f"edit_card_form_for_{st.session_state.edit_index_doc_id}"): # <-- CHAVE AGORA É DINÂMICA
-                edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
-                edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
-                edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=200, key="edit_q_input")
-                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=200, key="edit_ans_input")
-                col_save, col_cancel = st.columns(2)
-                with col_save:
-                    edited_submitted = st.form_submit_button("Salvar Edição")
-                with col_cancel:
-                    cancel_edit = st.form_submit_button("Cancelar Edição")
+            # Formulário para editar cartão (aparece apenas se um cartão for selecionado para edição)
+            if 'edit_index_doc_id' in st.session_state and st.session_state.edit_index_doc_id is not None: 
+                st.subheader(f"Editar Cartão (ID: {st.session_state.edit_index_doc_id[:6]}...)")
+                # A chave do formulário agora é dinâmica, usando o ID do documento
+                with st.form(f"edit_card_form_{st.session_state.edit_index_doc_id}"): 
+                    edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
+                    edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
+                    edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
+                    edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
+                    col_save, col_cancel = st.columns(2)
+                    with col_save:
+                        edited_submitted = st.form_submit_button("Salvar Edição")
+                    with col_cancel:
+                        cancel_edit = st.form_submit_button("Cancelar Edição")
 
-                if edited_submitted:
-                    if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
-                        updated_card_data = { # Dados atualizados para enviar ao Firestore
-                            "materia": edited_materia.strip(),
-                            "assunto": edited_assunto.strip(),
-                            "pergunta": edited_pergunta.strip(),
-                            "resposta_esperada": edited_resposta.strip()
-                        }
-                        # Atualiza no Firestore usando o doc_id
-                        if atualizar_cartao_firestore(st.session_state.edit_index_doc_id, updated_card_data, st.session_state.logged_in_user):
-                            # Atualiza na lista em memória
-                            for i, card in enumerate(st.session_state.user_cartoes):
-                                if card.get('doc_id') == st.session_state.edit_index_doc_id:
-                                    st.session_state.user_cartoes[i].update(updated_card_data)
-                                    break
-                        
-                            # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EDIÇÃO ---
-                            st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
-                            st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
+                    if edited_submitted:
+                        if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
+                            updated_card_data = { # Dados atualizados para enviar ao Firestore
+                                "materia": edited_materia.strip(),
+                                "assunto": edited_assunto.strip(),
+                                "pergunta": edited_pergunta.strip(),
+                                "resposta_esperada": edited_resposta.strip()
+                            }
+                            # Atualiza no Firestore usando o doc_id
+                            if atualizar_cartao_firestore(st.session_state.edit_index_doc_id, updated_card_data, st.session_state.logged_in_user):
+                                # Atualiza na lista em memória
+                                for i, card in enumerate(st.session_state.user_cartoes):
+                                    if card.get('doc_id') == st.session_state.edit_index_doc_id:
+                                        st.session_state.user_cartoes[i].update(updated_card_data)
+                                        break
                             
-                            # Recalcula ordered_cards_for_session
-                            card_latest_scores_recalc = {}
-                            for entry in reversed(st.session_state.feedback_history):
-                                card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
-                                if card_id not in card_latest_scores_recalc:
-                                    card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
+                                # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EDIÇÃO ---
+                                st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
+                                st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
+                                
+                                # Recalcula ordered_cards_for_session
+                                card_latest_scores_recalc = {}
+                                for entry in reversed(st.session_state.feedback_history):
+                                    card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
+                                    if card_id not in card_latest_scores_recalc:
+                                        card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
                             cards_for_ordering_recalc = []
                             for card in st.session_state.user_cartoes:
                                 card_id = (card["pergunta"], card["materia"], card["assunto"])
@@ -958,7 +951,7 @@ else: # Usuário logado
         if pontuacoes_validas > 0:
             st.markdown(f"**Pontuação Média de Sentido (com filtros):** **{total_pontuacao / pontuacoes_validas:.1f}%**")
         else:
-            st.markdown(f"**Pontuação Média de Sentido (com filtros):** N/A (sem pontuações registradas)")
+            st.markdown(f"**Pontuação Média de Sentido (com filtros):** N/A (sem pontuacoes registradas)")
 
         st.subheader("Histórico Detalhado:")
         if st.button("Limpar Histórico de Desempenho", type="secondary"):
@@ -982,7 +975,7 @@ else: # Usuário logado
 
 
     def render_tab_difficult_questions():
-        st.header("Prática: perguntas mais difíceis")
+        st.header("Modo de Prática: Perguntas Mais Difíceas")
 
         current_practice_cards_difficult = st.session_state.difficult_cards_for_session
         
@@ -1015,7 +1008,7 @@ else: # Usuário logado
                                     height=150,
                                     key=f"user_answer_input_difficult_{st.session_state.current_card_index_difficult}")
 
-        if st.button("Verificar Resposta", key="check_response_btn_difficult"):
+        if st.button("Verificar Resposta com Gemini (Difíceis)", key="check_response_btn_difficult"):
             if user_answer_difficult.strip():
                 with st.spinner("Analisando com Gemini..."):
                     # Passa a pergunta também para o Gemini
@@ -1069,7 +1062,7 @@ else: # Usuário logado
             st.subheader("Resposta Esperada:")
             st.success(current_card_difficult["resposta_esperada"])
         
-        elif st.button("Revelar Resposta Esperada", key="reveal_btn_difficult"):
+        elif st.button("Revelar Resposta Esperada (Difíceis)", key="reveal_btn_difficult"):
             st.session_state.show_expected_answer = True
             st.session_state.last_gemini_feedback_display_parsed = None
             
