@@ -53,10 +53,10 @@ st.markdown(
         border-radius: 0px; /* Cantos mais arredondados */
         border: none;
         background-color: #bfd7ea; /* Um azul claro para botões primários cae9ff*/
-        color: #13315c; /* Azul escuro para o texto do botão */ 
+        color: #13315c; /* Azul escuro para o texto do botão */ 
         cursor: pointer;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra suave para profundidade */
-        font-weight: bold; /* Negrito para destaque */ 
+        font-weight: bold; /* Negrito para destaque */ 
         transition: background-color 0.3s ease; /* Efeito de transição suave */
     }
     .stButton > button:hover {
@@ -131,7 +131,8 @@ except ValueError: # Este erro ocorre se o app não foi inicializado
             firebase_admin.initialize_app(cred)
             st.success(f"Firebase inicializado via arquivo local: {SERVICE_ACCOUNT_KEY_PATH_LOCAL}")
         # EM SEGUNDO, TENTA CARREGAR DE STREAMLIT SECRETS (para deploy na nuvem)
-        elif st.secrets.get("FIRESTORE_CREDENTIALS_JSON") and st.secrets.get("GOOGLE_CLOUD_PROJECT_ID"): # <-- USAR .get()
+        # st.secrets.get() é mais seguro pois não levanta erro se o secret não existe
+        elif st.secrets.get("FIRESTORE_CREDENTIALS_JSON") and st.secrets.get("GOOGLE_CLOUD_PROJECT_ID"):
             cred_info_json = json.loads(st.secrets["FIRESTORE_CREDENTIALS_JSON"])
             project_id_from_secrets = st.secrets["GOOGLE_CLOUD_PROJECT_ID"]
             
@@ -183,8 +184,6 @@ def carregar_cartoes(username): # AGORA CARREGA CARTÕES DO USUÁRIO
     """
     cartoes = []
     try:
-        # Acessa a subcoleção 'user_cards' dentro do documento do usuário
-        # O ID do documento do usuário é o próprio username
         docs = db.collection(USERS_COLLECTION).document(username).collection(CARDS_COLLECTION).stream()
         for doc in docs:
             card_data = doc.to_dict()
@@ -313,7 +312,7 @@ def inicializar_admin_existencia():
 
 
 # --- Função de Interação com o Gemini ---
-def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada): # <-- ADICIONADO 'pergunta' AQUI
+def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada):
     """
     Envia a resposta do usuário e a resposta esperada para o Gemini
     e pede para ele comparar o sentido, apontar erros gramaticais/grafia,
@@ -557,10 +556,6 @@ else: # Usuário logado
     selected_tab = st.sidebar.radio("Navegar entre Seções:", tab_options, key="main_tab_selector")
 
     # --- Funções de Renderização de Conteúdo por Aba ---
-    # As funções de renderização devem estar definidas DENTRO do 'else' do login,
-    # para que tenham acesso aos estados do usuário logado (st.session_state.logged_in_user)
-    # e para que não sejam redefinidas desnecessariamente.
-
     def render_tab_all_questions():
         st.header("Prática: todas as perguntas")
         
@@ -658,16 +653,17 @@ else: # Usuário logado
                 st.markdown(f"**Erros Gramaticais/Ortográficos:** {parsed_feedback_to_display.get('grammar_errors', 'N/A')}")
                 st.markdown(f"**Sugestões Rápidas de Melhoria:** {parsed_feedback_to_display.get('suggestions', 'N/A')}")
 
-            st.subheader("Resposta Esperada:")
+            st.subheader("Resposta Esperada:") # Exibir a resposta esperada aqui
             st.success(current_card_tab1["resposta_esperada"])
         
-        elif st.button("Revelar Resposta Esperada", key="reveal_btn_tab1"):
-            st.session_state.show_expected_answer = True
-            st.session_state.last_gemini_feedback_display_parsed = None
-            
-        if st.session_state.show_expected_answer:
-            st.subheader("Resposta Esperada:")
-            st.success(current_card_tab1["resposta_esperada"])
+        # REMOVIDO: Botão "Revelar Resposta Esperada"
+        # elif st.button("Revelar Resposta Esperada", key="reveal_btn_tab1"):
+        #     st.session_state.show_expected_answer = True
+        #     st.session_state.last_gemini_feedback_display_parsed = None
+        #     
+        # if st.session_state.show_expected_answer:
+        #     st.subheader("Resposta Esperada:")
+        #     st.success(current_card_tab1["resposta_esperada"])
 
         nav_col1_tab1, nav_col2_tab1, nav_col3_tab1, nav_col4_tab1 = st.columns(4)
         with nav_col1_tab1:
@@ -805,8 +801,7 @@ else: # Usuário logado
 
                 col_edit, col_delete = st.columns(2)
                 with col_edit:
-                    # Botão Editar dentro do loop
-                    if st.button(f"Editar", key=f"edit_card_btn_{card_doc_id}"): # Key única
+                    if st.button(f"Editar", key=f"edit_card_btn_{card_doc_id}"): # Usa doc_id para key
                         st.session_state.edit_index_doc_id = card_doc_id # Armazena o doc_id do cartão a ser editado
                         # Carrega os dados do cartão para os inputs do formulário de edição
                         st.session_state.edit_materia = card["materia"]
@@ -853,49 +848,47 @@ else: # Usuário logado
                             st.rerun()
                 st.markdown("---")
 
-        # --- Formulário de Edição (FORA DO LOOP de exibição de cartões) ---
-        # Este formulário só é renderizado se st.session_state.edit_index_doc_id não for None
-        if 'edit_index_doc_id' in st.session_state and st.session_state.edit_index_doc_id is not None: 
-            st.subheader(f"Editar Cartão (ID: {st.session_state.edit_index_doc_id[:6]}...)")
-            
-            # A CHAVE DO FORMULÁRIO É AGORA ÚNICA POR MEIO DO doc_id
-            with st.form(key=f"edit_card_form_for_{st.session_state.edit_index_doc_id}"): # <-- CHAVE AGORA É DINÂMICA
-                edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
-                edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
-                edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=200, key="edit_q_input")
-                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=200, key="edit_ans_input")
-                col_save, col_cancel = st.columns(2)
-                with col_save:
-                    edited_submitted = st.form_submit_button("Salvar Edição")
-                with col_cancel:
-                    cancel_edit = st.form_submit_button("Cancelar Edição")
+            # Formulário para editar cartão (aparece apenas se um cartão for selecionado para edição)
+            if 'edit_index_doc_id' in st.session_state and st.session_state.edit_index_doc_id is not None: 
+                st.subheader(f"Editar Cartão (ID: {st.session_state.edit_index_doc_id[:6]}...)")
+                # A chave do formulário agora é dinâmica, usando o ID do documento
+                with st.form(f"edit_card_form_{st.session_state.edit_index_doc_id}"): 
+                    edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
+                    edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
+                    edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
+                    edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
+                    col_save, col_cancel = st.columns(2)
+                    with col_save:
+                        edited_submitted = st.form_submit_button("Salvar Edição")
+                    with col_cancel:
+                        cancel_edit = st.form_submit_button("Cancelar Edição")
 
-                if edited_submitted:
-                    if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
-                        updated_card_data = { # Dados atualizados para enviar ao Firestore
-                            "materia": edited_materia.strip(),
-                            "assunto": edited_assunto.strip(),
-                            "pergunta": edited_pergunta.strip(),
-                            "resposta_esperada": edited_resposta.strip()
-                        }
-                        # Atualiza no Firestore usando o doc_id
-                        if atualizar_cartao_firestore(st.session_state.edit_index_doc_id, updated_card_data, st.session_state.logged_in_user):
-                            # Atualiza na lista em memória
-                            for i, card in enumerate(st.session_state.user_cartoes):
-                                if card.get('doc_id') == st.session_state.edit_index_doc_id:
-                                    st.session_state.user_cartoes[i].update(updated_card_data)
-                                    break
-                        
-                            # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EDIÇÃO ---
-                            st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
-                            st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
+                    if edited_submitted:
+                        if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
+                            updated_card_data = { # Dados atualizados para enviar ao Firestore
+                                "materia": edited_materia.strip(),
+                                "assunto": edited_assunto.strip(),
+                                "pergunta": edited_pergunta.strip(),
+                                "resposta_esperada": edited_resposta.strip()
+                            }
+                            # Atualiza no Firestore usando o doc_id
+                            if atualizar_cartao_firestore(st.session_state.edit_index_doc_id, updated_card_data, st.session_state.logged_in_user):
+                                # Atualiza na lista em memória
+                                for i, card in enumerate(st.session_state.user_cartoes):
+                                    if card.get('doc_id') == st.session_state.edit_index_doc_id:
+                                        st.session_state.user_cartoes[i].update(updated_card_data)
+                                        break
                             
-                            # Recalcula ordered_cards_for_session
-                            card_latest_scores_recalc = {}
-                            for entry in reversed(st.session_state.feedback_history):
-                                card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
-                                if card_id not in card_latest_scores_recalc:
-                                    card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
+                                # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EDIÇÃO ---
+                                st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
+                                st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
+                                
+                                # Recalcula ordered_cards_for_session
+                                card_latest_scores_recalc = {}
+                                for entry in reversed(st.session_state.feedback_history):
+                                    card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
+                                    if card_id not in card_latest_scores_recalc:
+                                        card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
                             cards_for_ordering_recalc = []
                             for card in st.session_state.user_cartoes:
                                 card_id = (card["pergunta"], card["materia"], card["assunto"])
@@ -958,7 +951,7 @@ else: # Usuário logado
         if pontuacoes_validas > 0:
             st.markdown(f"**Pontuação Média de Sentido (com filtros):** **{total_pontuacao / pontuacoes_validas:.1f}%**")
         else:
-            st.markdown(f"**Pontuação Média de Sentido (com filtros):** N/A (sem pontuações registradas)")
+            st.markdown(f"**Pontuação Média de Sentido (com filtros):** N/A (sem pontuacoes registradas)")
 
         st.subheader("Histórico Detalhado:")
         if st.button("Limpar Histórico de Desempenho", type="secondary"):
