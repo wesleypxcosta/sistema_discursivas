@@ -125,14 +125,13 @@ try:
     firebase_admin.get_app() # Tenta obter o app, se já inicializado
 except ValueError: # Este erro ocorre se o app não foi inicializado
     try:
-        # **SOLUÇÃO: PRIORIZA O ARQUIVO LOCAL PRIMEIRO, E SÓ DEPOIS TENTA OS SECRETS/PADRÃO**
+        # **SOLUÇÃO: TENTA O ARQUIVO LOCAL PRIMEIRO, E SÓ DEPOIS TENTA OS SECRETS/PADRÃO**
         if os.path.exists(SERVICE_ACCOUNT_KEY_PATH_LOCAL):
             cred = credentials.Certificate(SERVICE_ACCOUNT_KEY_PATH_LOCAL)
             firebase_admin.initialize_app(cred)
             st.success(f"Firebase inicializado via arquivo local: {SERVICE_ACCOUNT_KEY_PATH_LOCAL}")
         # EM SEGUNDO, TENTA CARREGAR DE STREAMLIT SECRETS (para deploy na nuvem)
-        # st.secrets.get() é mais seguro pois não levanta erro se o secret não existe
-        elif st.secrets.get("FIRESTORE_CREDENTIALS_JSON") and st.secrets.get("GOOGLE_CLOUD_PROJECT_ID"):
+        elif st.secrets.get("FIRESTORE_CREDENTIALS_JSON") and st.secrets.get("GOOGLE_CLOUD_PROJECT_ID"): # <-- USAR .get()
             cred_info_json = json.loads(st.secrets["FIRESTORE_CREDENTIALS_JSON"])
             project_id_from_secrets = st.secrets["GOOGLE_CLOUD_PROJECT_ID"]
             
@@ -184,6 +183,8 @@ def carregar_cartoes(username): # AGORA CARREGA CARTÕES DO USUÁRIO
     """
     cartoes = []
     try:
+        # Acessa a subcoleção 'user_cards' dentro do documento do usuário
+        # O ID do documento do usuário é o próprio username
         docs = db.collection(USERS_COLLECTION).document(username).collection(CARDS_COLLECTION).stream()
         for doc in docs:
             card_data = doc.to_dict()
@@ -656,7 +657,7 @@ else: # Usuário logado
             st.subheader("Resposta Esperada:") # Exibir a resposta esperada aqui
             st.success(current_card_tab1["resposta_esperada"])
         
-        # REMOVIDO: Botão "Revelar Resposta Esperada"
+        # REMOVIDO: Botão "Revelar Resposta Esperada" (ele não deve aparecer mais)
         # elif st.button("Revelar Resposta Esperada", key="reveal_btn_tab1"):
         #     st.session_state.show_expected_answer = True
         #     st.session_state.last_gemini_feedback_display_parsed = None
