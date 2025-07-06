@@ -60,7 +60,7 @@ st.markdown(
         transition: background-color 0.3s ease; /* Efeito de transição suave */
     }
     .stButton > button:hover {
-        background-color: #415a77; /* Cinza um pouco escuro ao passar o mouse */
+        background-color: #415a77; /* Cinza um pouco mais escuro ao passar o mouse */
         color: #ffffff; /* Texto branco ao passar o mouse */
         font-weight: bold; /* Negrito ao passar o mouse */
     }
@@ -313,7 +313,7 @@ def inicializar_admin_existencia():
 
 
 # --- Função de Interação com o Gemini ---
-def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada):
+def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada): # <-- ADICIONADO 'pergunta' AQUI
     """
     Envia a resposta do usuário e a resposta esperada para o Gemini
     e pede para ele comparar o sentido, apontar erros gramaticais/grafia,
@@ -654,31 +654,25 @@ else: # Usuário logado
                 st.markdown(f"**Erros Gramaticais/Ortográficos:** {parsed_feedback_to_display.get('grammar_errors', 'N/A')}")
                 st.markdown(f"**Sugestões Rápidas de Melhoria:** {parsed_feedback_to_display.get('suggestions', 'N/A')}")
 
-            st.subheader("Resposta Esperada:") # Exibir a resposta esperada aqui
+            st.subheader("Resposta Esperada:")
             st.success(current_card_tab1["resposta_esperada"])
         
-        # REMOVIDO: Botão "Revelar Resposta Esperada" (ele não deve aparecer mais)
-        # elif st.button("Revelar Resposta Esperada", key="reveal_btn_tab1"):
-        #     st.session_state.show_expected_answer = True
-        #     st.session_state.last_gemini_feedback_display_parsed = None
-        #     
-        # if st.session_state.show_expected_answer:
-        #     st.subheader("Resposta Esperada:")
-        #     st.success(current_card_tab1["resposta_esperada"])
+        # O botão "Revelar Resposta Esperada" foi removido.
+        # A resposta esperada só é exibida com o feedback do Gemini.
 
         nav_col1_tab1, nav_col2_tab1, nav_col3_tab1, nav_col4_tab1 = st.columns(4)
         with nav_col1_tab1:
             if st.button("Primeiro", key="first_card_btn_tab1"):
                 st.session_state.current_card_index = 0
-                st.session_state.show_expected_answer = False
-                st.session_state.last_gemini_feedback_display_parsed = None
+                st.session_state.show_expected_answer = False # Mantém o reset
+                st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                 st.rerun()
         with nav_col2_tab1:
             if st.button("Anterior", key="prev_card_btn_tab1"):
                 if st.session_state.current_card_index > 0:
                     st.session_state.current_card_index -= 1
-                    st.session_state.show_expected_answer = False
-                    st.session_state.last_gemini_feedback_display_parsed = None
+                    st.session_state.show_expected_answer = False # Mantém o reset
+                    st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                     st.rerun()
                 else:
                     st.info("Você está no primeiro cartão.")
@@ -686,16 +680,16 @@ else: # Usuário logado
             if st.button("Próximo", key="next_card_btn_tab1"):
                 if st.session_state.current_card_index < len(filtered_cards_tab1) - 1:
                     st.session_state.current_card_index += 1
-                    st.session_state.show_expected_answer = False
-                    st.session_state.last_gemini_feedback_display_parsed = None
+                    st.session_state.show_expected_answer = False # Mantém o reset
+                    st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                     st.rerun()
                 else:
                     st.info("Você está no último cartão.")
         with nav_col4_tab1:
             if st.button("Último", key="last_card_btn_tab1"):
                 st.session_state.current_card_index = len(filtered_cards_tab1) - 1
-                st.session_state.show_expected_answer = False
-                st.session_state.last_gemini_feedback_display_parsed = None
+                st.session_state.show_expected_answer = False # Mantém o reset
+                st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                 st.rerun()
 
 
@@ -849,47 +843,49 @@ else: # Usuário logado
                             st.rerun()
                 st.markdown("---")
 
-            # Formulário para editar cartão (aparece apenas se um cartão for selecionado para edição)
-            if 'edit_index_doc_id' in st.session_state and st.session_state.edit_index_doc_id is not None: 
-                st.subheader(f"Editar Cartão (ID: {st.session_state.edit_index_doc_id[:6]}...)")
-                # A chave do formulário agora é dinâmica, usando o ID do documento
-                with st.form(f"edit_card_form_{st.session_state.edit_index_doc_id}"): 
-                    edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
-                    edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
-                    edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
-                    edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
-                    col_save, col_cancel = st.columns(2)
-                    with col_save:
-                        edited_submitted = st.form_submit_button("Salvar Edição")
-                    with col_cancel:
-                        cancel_edit = st.form_submit_button("Cancelar Edição")
+        # --- Formulário de Edição (FORA DO LOOP de exibição de cartões) ---
+        # Este formulário SÓ É RENDERIZADO se um cartão foi selecionado para edição.
+        if 'edit_index_doc_id' in st.session_state and st.session_state.edit_index_doc_id is not None: 
+            st.subheader(f"Editar Cartão (ID: {st.session_state.edit_index_doc_id[:6]}...)")
+            
+            # A CHAVE DO FORMULÁRIO É AGORA ÚNICA POR MEIO DO doc_id
+            with st.form(key=f"edit_card_form_{st.session_state.edit_index_doc_id}"): 
+                edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
+                edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
+                edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
+                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
+                col_save, col_cancel = st.columns(2)
+                with col_save:
+                    edited_submitted = st.form_submit_button("Salvar Edição")
+                with col_cancel:
+                    cancel_edit = st.form_submit_button("Cancelar Edição")
 
-                    if edited_submitted:
-                        if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
-                            updated_card_data = { # Dados atualizados para enviar ao Firestore
-                                "materia": edited_materia.strip(),
-                                "assunto": edited_assunto.strip(),
-                                "pergunta": edited_pergunta.strip(),
-                                "resposta_esperada": edited_resposta.strip()
-                            }
-                            # Atualiza no Firestore usando o doc_id
-                            if atualizar_cartao_firestore(st.session_state.edit_index_doc_id, updated_card_data, st.session_state.logged_in_user):
-                                # Atualiza na lista em memória
-                                for i, card in enumerate(st.session_state.user_cartoes):
-                                    if card.get('doc_id') == st.session_state.edit_index_doc_id:
-                                        st.session_state.user_cartoes[i].update(updated_card_data)
-                                        break
+                if edited_submitted:
+                    if edited_materia.strip() and edited_assunto.strip() and edited_pergunta.strip() and edited_resposta.strip():
+                        updated_card_data = { # Dados atualizados para enviar ao Firestore
+                            "materia": edited_materia.strip(),
+                            "assunto": edited_assunto.strip(),
+                            "pergunta": edited_pergunta.strip(),
+                            "resposta_esperada": edited_resposta.strip()
+                        }
+                        # Atualiza no Firestore usando o doc_id
+                        if atualizar_cartao_firestore(st.session_state.edit_index_doc_id, updated_card_data, st.session_state.logged_in_user):
+                            # Atualiza na lista em memória
+                            for i, card in enumerate(st.session_state.user_cartoes):
+                                if card.get('doc_id') == st.session_state.edit_index_doc_id:
+                                    st.session_state.user_cartoes[i].update(updated_card_data)
+                                    break
+                        
+                            # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EDIÇÃO ---
+                            st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
+                            st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
                             
-                                # --- ATUALIZAÇÃO DA ORDEM E LISTA DE DIFÍCEIS APÓS EDIÇÃO ---
-                                st.session_state.user_cartoes = carregar_cartoes(st.session_state.logged_in_user) # Recarrega os cartões mais recentes
-                                st.session_state.feedback_history = carregar_historico_feedback(st.session_state.logged_in_user) # Recarrega o histórico
-                                
-                                # Recalcula ordered_cards_for_session
-                                card_latest_scores_recalc = {}
-                                for entry in reversed(st.session_state.feedback_history):
-                                    card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
-                                    if card_id not in card_latest_scores_recalc:
-                                        card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
+                            # Recalcula ordered_cards_for_session
+                            card_latest_scores_recalc = {}
+                            for entry in reversed(st.session_state.feedback_history):
+                                card_id = (entry["pergunta"], entry["materia"], entry["assunto"])
+                                if card_id not in card_latest_scores_recalc:
+                                    card_latest_scores_recalc[card_id] = entry.get("nota_sentido")
                             cards_for_ordering_recalc = []
                             for card in st.session_state.user_cartoes:
                                 card_id = (card["pergunta"], card["materia"], card["assunto"])
@@ -907,12 +903,12 @@ else: # Usuário logado
                             # --- FIM DA ATUALIZAÇÃO ---
 
                             st.session_state.edit_index_doc_id = None # Limpa o estado de edição
-                            st.rerun()
+                            st.rerun() # Dispara rerun para remover o formulário
                         else:
                             st.warning("Por favor, preencha todos os campos para salvar a edição.")
                     elif cancel_edit:
                         st.session_state.edit_index_doc_id = None
-                        st.rerun()
+                        st.rerun() # Dispara rerun para remover o formulário
 
 
     def render_tab_metrics():
