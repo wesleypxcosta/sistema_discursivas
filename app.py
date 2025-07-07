@@ -605,7 +605,7 @@ else: # Usuário logado
                 if entry.get("nota_sentido") is not None:
                     last_score_found = f"Última resultado obtido: {entry['nota_sentido']}%"
                 break # Encontrou a última, pode parar
-        st.markdown(f"**{last_score_found}**")
+        st.markdown(f"*{last_score_found}*")
         # --- FIM NOVO ---
         
         st.info(current_card_tab1["pergunta"])
