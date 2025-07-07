@@ -53,10 +53,10 @@ st.markdown(
         border-radius: 0px; /* Cantos mais arredondados */
         border: none;
         background-color: #bfd7ea; /* Um azul claro para botões primários cae9ff*/
-        color: #13315c; /* Azul escuro para o texto do botão */ 
+        color: #13315c; /* Azul escuro para o texto do botão */ 
         cursor: pointer;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra suave para profundidade */
-        font-weight: bold; /* Negrito para destaque */ 
+        font-weight: bold; /* Negrito para destaque */ 
         transition: background-color 0.3s ease; /* Efeito de transição suave */
     }
     .stButton > button:hover {
@@ -526,7 +526,7 @@ if st.session_state.logged_in_user is None:
                     # Resetar outros estados para o novo usuário
                     st.session_state.current_card_index = 0
                     st.session_state.current_card_index_difficult = 0
-                    # REMOVIDO: st.session_state.show_expected_answer = False
+                    st.session_state.show_expected_answer = False # Mantém o reset
                     st.session_state.last_gemini_feedback_display_parsed = None
                     st.session_state.is_editing_card = False # Assegura que o formulário de edição não apareça no login
                     st.rerun()
@@ -594,6 +594,18 @@ else: # Usuário logado
             st.session_state.current_card_index = 0
 
         current_card_tab1 = filtered_cards_tab1[st.session_state.current_card_index]
+
+        # --- NOVO: Campo de "Última avaliação" ---
+        last_score_found = "Ainda não avaliada"
+        for entry in reversed(st.session_state.feedback_history):
+            card_id_entry = (entry["pergunta"], entry["materia"], entry["assunto"])
+            current_card_id = (current_card_tab1["pergunta"], current_card_tab1["materia"], current_card_tab1["assunto"])
+            if card_id_entry == current_card_id:
+                if entry.get("nota_sentido") is not None:
+                    last_score_found = f"Última avaliação: {entry['nota_sentido']}%"
+                break # Encontrou a última, pode parar
+        st.markdown(f"**{last_score_found}**")
+        # --- FIM NOVO ---
 
         st.subheader(f"Pergunta ({st.session_state.current_card_index + 1}/{len(filtered_cards_tab1)}):")
         st.info(current_card_tab1["pergunta"])
@@ -668,21 +680,21 @@ else: # Usuário logado
             st.subheader("Resposta Esperada:") # Exibir a resposta esperada aqui
             st.success(current_card_tab1["resposta_esperada"])
         
-        # O botão "Revelar Resposta Esperada" foi removido daqui e a lógica de show_expected_answer
-        # para esta aba será controlada apenas pela presença do feedback do Gemini.
+        # O botão "Revelar Resposta Esperada" foi removido.
+        # A resposta esperada só é exibida com o feedback do Gemini.
 
         nav_col1_tab1, nav_col2_tab1, nav_col3_tab1, nav_col4_tab1 = st.columns(4)
         with nav_col1_tab1:
             if st.button("Primeiro", key="first_card_btn_tab1"):
                 st.session_state.current_card_index = 0
-                st.session_state.show_expected_answer = False # Garante que o estado seja limpo
+                st.session_state.show_expected_answer = False # Mantém o reset
                 st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                 st.rerun()
         with nav_col2_tab1:
             if st.button("Anterior", key="prev_card_btn_tab1"):
                 if st.session_state.current_card_index > 0:
                     st.session_state.current_card_index -= 1
-                    st.session_state.show_expected_answer = False # Garante que o estado seja limpo
+                    st.session_state.show_expected_answer = False # Mantém o reset
                     st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                     st.rerun()
                 else:
@@ -691,7 +703,7 @@ else: # Usuário logado
             if st.button("Próximo", key="next_card_btn_tab1"):
                 if st.session_state.current_card_index < len(filtered_cards_tab1) - 1:
                     st.session_state.current_card_index += 1
-                    st.session_state.show_expected_answer = False # Garante que o estado seja limpo
+                    st.session_state.show_expected_answer = False # Mantém o reset
                     st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                     st.rerun()
                 else:
@@ -699,7 +711,7 @@ else: # Usuário logado
         with nav_col4_tab1:
             if st.button("Último", key="last_card_btn_tab1"):
                 st.session_state.current_card_index = len(filtered_cards_tab1) - 1
-                st.session_state.show_expected_answer = False # Garante que o estado seja limpo
+                st.session_state.show_expected_answer = False # Mantém o reset
                 st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                 st.rerun()
 
@@ -857,18 +869,16 @@ else: # Usuário logado
 
         # --- Formulário de Edição (FORA DO LOOP de exibição de cartões) ---
         # Este formulário SÓ É RENDERIZADO se st.session_state.is_editing_card for True
-        # e o doc_id para edição estiver definido.
         if st.session_state.is_editing_card and st.session_state.edit_index_doc_id is not None: 
             st.subheader(f"Editar Cartão (ID: {st.session_state.edit_index_doc_id[:6]}...)")
             
-            # A CHAVE DO FORMULÁRIO É AGORA ÚNICA POR MEIO DO doc_id
             # O st.empty() é usado para "conter" o formulário e permitir limpeza/substituição
             edit_form_placeholder = st.empty() # Cria um placeholder
             with edit_form_placeholder.form(key=f"edit_card_form_{st.session_state.edit_index_doc_id}"): 
                 edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
                 edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
-                edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
-                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=100, key="edit_ans_input")
+                edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=200, key="edit_q_input")
+                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=200, key="edit_ans_input")
                 col_save, col_cancel = st.columns(2)
                 with col_save:
                     edited_submitted = st.form_submit_button("Salvar Edição")
@@ -1061,7 +1071,7 @@ else: # Usuário logado
         if (st.session_state.last_gemini_feedback_display_parsed is not None and
             st.session_state.last_gemini_feedback_question == current_card_difficult["pergunta"]):
             
-            parsed_feedback_to_display = st.session_state.last_gemini_feedback_parsed
+            parsed_feedback_to_display = st.session_state.last_gemini_feedback_display_parsed
             st.subheader("Feedback do Gemini:")
             if "error" in parsed_feedback_to_display:
                 st.warning("Erro ao formatar feedback. Exibindo como texto bruto.")
@@ -1189,7 +1199,6 @@ else: # Usuário logado
 
 
     # --- Lógica de Renderização das Abas (Chamadas de Função) ---
-    # selected_tab é obtido do st.sidebar.radio. Apenas a aba selecionada é renderizada.
     if selected_tab == "Todas as Perguntas":
         render_tab_all_questions()
     elif selected_tab == "Gerenciar Cartões":
