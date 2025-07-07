@@ -595,19 +595,19 @@ else: # Usuário logado
 
         current_card_tab1 = filtered_cards_tab1[st.session_state.current_card_index]
 
+        st.subheader(f"Pergunta ({st.session_state.current_card_index + 1}/{len(filtered_cards_tab1)}):")
         # --- NOVO: Campo de "Última avaliação" ---
-        last_score_found = "Ainda não avaliada"
+        last_score_found = "Esta é a primeira vez que você responde esta questão."
         for entry in reversed(st.session_state.feedback_history):
             card_id_entry = (entry["pergunta"], entry["materia"], entry["assunto"])
             current_card_id = (current_card_tab1["pergunta"], current_card_tab1["materia"], current_card_tab1["assunto"])
             if card_id_entry == current_card_id:
                 if entry.get("nota_sentido") is not None:
-                    last_score_found = f"Última avaliação: {entry['nota_sentido']}%"
+                    last_score_found = f"Última resultado obtido: {entry['nota_sentido']}%"
                 break # Encontrou a última, pode parar
         st.markdown(f"**{last_score_found}**")
         # --- FIM NOVO ---
-
-        st.subheader(f"Pergunta ({st.session_state.current_card_index + 1}/{len(filtered_cards_tab1)}):")
+        
         st.info(current_card_tab1["pergunta"])
 
         user_answer_tab1 = st.text_area("Sua Resposta:",
