@@ -131,7 +131,8 @@ except ValueError: # Este erro ocorre se o app não foi inicializado
             firebase_admin.initialize_app(cred)
             st.success(f"Firebase inicializado via arquivo local: {SERVICE_ACCOUNT_KEY_PATH_LOCAL}")
         # EM SEGUNDO, TENTA CARREGAR DE STREAMLIT SECRETS (para deploy na nuvem)
-        elif st.secrets.get("FIRESTORE_CREDENTIALS_JSON") and st.secrets.get("GOOGLE_CLOUD_PROJECT_ID"): # <-- USAR .get()
+        # st.secrets.get() é mais seguro pois não levanta erro se o secret não existe
+        elif st.secrets.get("FIRESTORE_CREDENTIALS_JSON") and st.secrets.get("GOOGLE_CLOUD_PROJECT_ID"):
             cred_info_json = json.loads(st.secrets["FIRESTORE_CREDENTIALS_JSON"])
             project_id_from_secrets = st.secrets["GOOGLE_CLOUD_PROJECT_ID"]
             
@@ -313,7 +314,7 @@ def inicializar_admin_existencia():
 
 
 # --- Função de Interação com o Gemini ---
-def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada): # <-- ADICIONADO 'pergunta' AQUI
+def comparar_respostas_com_gemini(pergunta, resposta_usuario, resposta_esperada):
     """
     Envia a resposta do usuário e a resposta esperada para o Gemini
     e pede para ele comparar o sentido, apontar erros gramaticais/grafia,
@@ -435,8 +436,9 @@ if 'feedback_history' not in st.session_state:
 
 if 'current_card_index' not in st.session_state:
     st.session_state.current_card_index = 0
-if 'show_expected_answer' not in st.session_state:
-    st.session_state.show_expected_answer = False
+# REMOVIDO: show_expected_answer não será mais necessário, a exibição é controlada pelo feedback do Gemini
+# if 'show_expected_answer' not in st.session_state:
+#     st.session_state.show_expected_answer = False
 
 if 'last_gemini_feedback_display_parsed' not in st.session_state:
     st.session_state.last_gemini_feedback_display_parsed = None
@@ -463,6 +465,13 @@ if 'difficult_cards_for_session' not in st.session_state:
 
 if 'current_card_index_difficult' not in st.session_state:
     st.session_state.current_card_index_difficult = 0
+
+# --- NOVO: Estado para controlar a exibição do formulário de edição ---
+if 'is_editing_card' not in st.session_state:
+    st.session_state.is_editing_card = False
+# NOVO: Estado para armazenar os dados do cartão sendo editado
+if 'card_data_to_edit' not in st.session_state:
+    st.session_state.card_data_to_edit = {}
 
 
 # --- LÓGICA PRINCIPAL DO APP ---
@@ -517,8 +526,9 @@ if st.session_state.logged_in_user is None:
                     # Resetar outros estados para o novo usuário
                     st.session_state.current_card_index = 0
                     st.session_state.current_card_index_difficult = 0
-                    st.session_state.show_expected_answer = False
+                    # REMOVIDO: st.session_state.show_expected_answer = False
                     st.session_state.last_gemini_feedback_display_parsed = None
+                    st.session_state.is_editing_card = False # Assegura que o formulário de edição não apareça no login
                     st.rerun()
                 else:
                     st.error("Nome de usuário ou senha incorretos.")
@@ -541,10 +551,11 @@ else: # Usuário logado
         st.session_state.user_cartoes = []
         st.session_state.current_card_index = 0
         st.session_state.current_card_index_difficult = 0
-        st.session_state.show_expected_answer = False
+        st.session_state.show_expected_answer = False # Mantém o reset
         st.session_state.last_gemini_feedback_display_parsed = None
         st.session_state.ordered_cards_for_session = []
         st.session_state.difficult_cards_for_session = []
+        st.session_state.is_editing_card = False # Reseta no logout
         st.rerun()
 
     # Define quais abas serão exibidas e cria as referências para os blocos 'with'
@@ -654,24 +665,24 @@ else: # Usuário logado
                 st.markdown(f"**Erros Gramaticais/Ortográficos:** {parsed_feedback_to_display.get('grammar_errors', 'N/A')}")
                 st.markdown(f"**Sugestões Rápidas de Melhoria:** {parsed_feedback_to_display.get('suggestions', 'N/A')}")
 
-            st.subheader("Resposta Esperada:")
+            st.subheader("Resposta Esperada:") # Exibir a resposta esperada aqui
             st.success(current_card_tab1["resposta_esperada"])
         
-        # O botão "Revelar Resposta Esperada" foi removido.
-        # A resposta esperada só é exibida com o feedback do Gemini.
+        # O botão "Revelar Resposta Esperada" foi removido daqui e a lógica de show_expected_answer
+        # para esta aba será controlada apenas pela presença do feedback do Gemini.
 
         nav_col1_tab1, nav_col2_tab1, nav_col3_tab1, nav_col4_tab1 = st.columns(4)
         with nav_col1_tab1:
             if st.button("Primeiro", key="first_card_btn_tab1"):
                 st.session_state.current_card_index = 0
-                st.session_state.show_expected_answer = False # Mantém o reset
+                st.session_state.show_expected_answer = False # Garante que o estado seja limpo
                 st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                 st.rerun()
         with nav_col2_tab1:
             if st.button("Anterior", key="prev_card_btn_tab1"):
                 if st.session_state.current_card_index > 0:
                     st.session_state.current_card_index -= 1
-                    st.session_state.show_expected_answer = False # Mantém o reset
+                    st.session_state.show_expected_answer = False # Garante que o estado seja limpo
                     st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                     st.rerun()
                 else:
@@ -680,7 +691,7 @@ else: # Usuário logado
             if st.button("Próximo", key="next_card_btn_tab1"):
                 if st.session_state.current_card_index < len(filtered_cards_tab1) - 1:
                     st.session_state.current_card_index += 1
-                    st.session_state.show_expected_answer = False # Mantém o reset
+                    st.session_state.show_expected_answer = False # Garante que o estado seja limpo
                     st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                     st.rerun()
                 else:
@@ -688,7 +699,7 @@ else: # Usuário logado
         with nav_col4_tab1:
             if st.button("Último", key="last_card_btn_tab1"):
                 st.session_state.current_card_index = len(filtered_cards_tab1) - 1
-                st.session_state.show_expected_answer = False # Mantém o reset
+                st.session_state.show_expected_answer = False # Garante que o estado seja limpo
                 st.session_state.last_gemini_feedback_display_parsed = None # Limpa feedback
                 st.rerun()
 
@@ -803,6 +814,7 @@ else: # Usuário logado
                         st.session_state.edit_assunto = card["assunto"]
                         st.session_state.edit_pergunta = card["pergunta"]
                         st.session_state.edit_resposta = card["resposta_esperada"]
+                        st.session_state.is_editing_card = True # Sinaliza para exibir o formulário de edição
                         st.rerun()
 
                 with col_delete:
@@ -844,12 +856,15 @@ else: # Usuário logado
                 st.markdown("---")
 
         # --- Formulário de Edição (FORA DO LOOP de exibição de cartões) ---
-        # Este formulário SÓ É RENDERIZADO se um cartão foi selecionado para edição.
-        if 'edit_index_doc_id' in st.session_state and st.session_state.edit_index_doc_id is not None: 
+        # Este formulário SÓ É RENDERIZADO se st.session_state.is_editing_card for True
+        # e o doc_id para edição estiver definido.
+        if st.session_state.is_editing_card and st.session_state.edit_index_doc_id is not None: 
             st.subheader(f"Editar Cartão (ID: {st.session_state.edit_index_doc_id[:6]}...)")
             
             # A CHAVE DO FORMULÁRIO É AGORA ÚNICA POR MEIO DO doc_id
-            with st.form(key=f"edit_card_form_{st.session_state.edit_index_doc_id}"): 
+            # O st.empty() é usado para "conter" o formulário e permitir limpeza/substituição
+            edit_form_placeholder = st.empty() # Cria um placeholder
+            with edit_form_placeholder.form(key=f"edit_card_form_{st.session_state.edit_index_doc_id}"): 
                 edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
                 edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
                 edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=100, key="edit_q_input")
@@ -903,12 +918,14 @@ else: # Usuário logado
                             # --- FIM DA ATUALIZAÇÃO ---
 
                             st.session_state.edit_index_doc_id = None # Limpa o estado de edição
-                            st.rerun() # Dispara rerun para remover o formulário
+                            st.session_state.is_editing_card = False # OCULTA O FORMULÁRIO
+                            st.rerun()
                         else:
                             st.warning("Por favor, preencha todos os campos para salvar a edição.")
                     elif cancel_edit:
                         st.session_state.edit_index_doc_id = None
-                        st.rerun() # Dispara rerun para remover o formulário
+                        st.session_state.is_editing_card = False # OCULTA O FORMULÁRIO
+                        st.rerun()
 
 
     def render_tab_metrics():
@@ -1044,7 +1061,7 @@ else: # Usuário logado
         if (st.session_state.last_gemini_feedback_display_parsed is not None and
             st.session_state.last_gemini_feedback_question == current_card_difficult["pergunta"]):
             
-            parsed_feedback_to_display = st.session_state.last_gemini_feedback_display_parsed
+            parsed_feedback_to_display = st.session_state.last_gemini_feedback_parsed
             st.subheader("Feedback do Gemini:")
             if "error" in parsed_feedback_to_display:
                 st.warning("Erro ao formatar feedback. Exibindo como texto bruto.")
