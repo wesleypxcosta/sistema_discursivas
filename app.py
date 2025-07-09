@@ -677,7 +677,7 @@ else: # Usuário logado
                 st.markdown(f"**Erros Gramaticais/Ortográficos:** {parsed_feedback_to_display.get('grammar_errors', 'N/A')}")
                 st.markdown(f"**Sugestões Rápidas de Melhoria:** {parsed_feedback_to_display.get('suggestions', 'N/A')}")
 
-            st.subheader("Resposta Esperada:") # Exibir a resposta esperada aqui
+            st.subheader("Padrão de Resposta:") # Exibir a resposta esperada aqui
             st.success(current_card_tab1["resposta_esperada"])
         
         # O botão "Revelar Resposta Esperada" foi removido.
@@ -731,7 +731,7 @@ else: # Usuário logado
             nova_pergunta = st.text_area("Nova Pergunta:",
                                          height=200,
                                          key=f"new_q_input_{st.session_state.add_card_form_key_suffix}")
-            nova_resposta = st.text_area("Nova Resposta Esperada:",
+            nova_resposta = st.text_area("Novo Padrão de Resposta:",
                                          height=200,
                                          key=f"new_a_input_{st.session_state.add_card_form_key_suffix}")
             
@@ -815,7 +815,7 @@ else: # Usuário logado
                 st.write("**Matéria:**", card["materia"])
                 st.write("**Assunto:**", card["assunto"])
                 st.write("**Pergunta:**", card["pergunta"])
-                st.write("**Resposta Esperada:**", card["resposta_esperada"])
+                st.write("**Padrão de Resposta:**", card["resposta_esperada"])
 
                 col_edit, col_delete = st.columns(2)
                 with col_edit:
@@ -878,7 +878,7 @@ else: # Usuário logado
                 edited_materia = st.text_input("Matéria:", value=st.session_state.edit_materia, key="edit_m_input")
                 edited_assunto = st.text_input("Assunto:", value=st.session_state.edit_assunto, key="edit_a_input")
                 edited_pergunta = st.text_area("Pergunta:", value=st.session_state.edit_pergunta, height=200, key="edit_q_input")
-                edited_resposta = st.text_area("Resposta Esperada:", value=st.session_state.edit_resposta, height=200, key="edit_ans_input")
+                edited_resposta = st.text_area("Padrão de Resposta:", value=st.session_state.edit_resposta, height=200, key="edit_ans_input")
                 col_save, col_cancel = st.columns(2)
                 with col_save:
                     edited_submitted = st.form_submit_button("Salvar Edição")
@@ -1083,15 +1083,15 @@ else: # Usuário logado
                 st.markdown(f"**Erros Gramaticais/Ortográficos:** {parsed_feedback_to_display.get('grammar_errors', 'N/A')}")
                 st.markdown(f"**Sugestões Rápidas de Melhoria:** {parsed_feedback_to_display.get('suggestions', 'N/A')}")
 
-            st.subheader("Resposta Esperada:")
+            st.subheader("Padrão de Resposta:")
             st.success(current_card_difficult["resposta_esperada"])
         
-        elif st.button("Revelar Resposta Esperada", key="reveal_btn_difficult"):
+        elif st.button("Revelar Padrão de Resposta", key="reveal_btn_difficult"):
             st.session_state.show_expected_answer = True
             st.session_state.last_gemini_feedback_display_parsed = None
             
         if st.session_state.show_expected_answer:
-            st.subheader("Resposta Esperada:")
+            st.subheader("Padrão de Resposta:")
             st.success(current_card_difficult["resposta_esperada"])
 
         nav_col1_d, nav_col2_d, nav_col3_d, nav_col4_d = st.columns(4)
