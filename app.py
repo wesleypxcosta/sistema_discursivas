@@ -1086,13 +1086,13 @@ else: # Usuário logado
             st.subheader("Padrão de Resposta:")
             st.success(current_card_difficult["resposta_esperada"])
         
-        elif st.button("Revelar Padrão de Resposta", key="reveal_btn_difficult"):
-            st.session_state.show_expected_answer = True
-            st.session_state.last_gemini_feedback_display_parsed = None
-            
-        if st.session_state.show_expected_answer:
-            st.subheader("Padrão de Resposta:")
-            st.success(current_card_difficult["resposta_esperada"])
+#        elif st.button("Revelar Padrão de Resposta", key="reveal_btn_difficult"):
+#            st.session_state.show_expected_answer = True
+#            st.session_state.last_gemini_feedback_display_parsed = None
+#            
+#        if st.session_state.show_expected_answer:
+#            st.subheader("Padrão de Resposta:")
+#            st.success(current_card_difficult["resposta_esperada"])
 
         nav_col1_d, nav_col2_d, nav_col3_d, nav_col4_d = st.columns(4)
         with nav_col1_d:
