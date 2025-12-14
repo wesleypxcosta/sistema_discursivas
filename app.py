@@ -558,6 +558,48 @@ else: # Usuário logado
         st.session_state.is_editing_card = False # Reseta no logout
         st.rerun()
 
+    # --- NOVO: Formulário de Alteração de Senha para o Próprio Usuário (na Sidebar) ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🔒 Alterar Minha Senha")
+    with st.sidebar.form("change_self_password_form"):
+        current_password = st.text_input("Senha Atual:", type="password", key="current_pass_input")
+        new_password = st.text_input("Nova Senha:", type="password", key="new_pass_input_self")
+        confirm_new_password = st.text_input("Confirme Nova Senha:", type="password", key="confirm_new_pass_input_self")
+    
+        if st.form_submit_button("Atualizar Senha"):
+            username = st.session_state.logged_in_user
+            users_data = carregar_usuarios()
+            
+            if not current_password.strip() or not new_password.strip() or not confirm_new_password.strip():
+                st.error("Por favor, preencha todos os campos.")
+            elif new_password != confirm_new_password:
+                st.error("A nova senha e a confirmação não coincidem.")
+            elif hash_password(current_password.strip()) != users_data.get(username):
+                st.error("Senha atual incorreta.")
+            else:
+                # Hash da nova senha e atualização no Firestore
+                new_hash = hash_password(new_password.strip())
+                users_data[username] = new_hash
+                salvar_usuarios(users_data)
+                
+                st.success("Senha alterada com sucesso! Por favor, faça login novamente com a nova senha.")
+                
+                # Força o logout após a alteração bem-sucedida por segurança
+                st.session_state.logged_in_user = None
+                st.session_state.feedback_history = []
+                st.session_state.user_cartoes = []
+                st.session_state.current_card_index = 0
+                st.session_state.last_gemini_feedback_display_parsed = None
+                st.session_state.is_editing_card = False
+                st.rerun()
+    
+    st.sidebar.markdown("---")
+    # --- FIM DO FORMULÁRIO DE ALTERAÇÃO DE SENHA NA SIDEBAR ---
+    
+    # Define quais abas serão exibidas e cria as referências para os blocos 'with'
+    tab_options = []
+    
+    
     # Define quais abas serão exibidas e cria as referências para os blocos 'with'
     tab_options = []
     if st.session_state.logged_in_user == ADMIN_USERNAME:
@@ -1209,3 +1251,4 @@ else: # Usuário logado
         render_tab_difficult_questions()
     elif selected_tab == "Gerenciar Usuários" and st.session_state.logged_in_user == ADMIN_USERNAME:
         render_tab_manage_users()
+
